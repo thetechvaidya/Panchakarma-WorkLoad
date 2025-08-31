@@ -5,27 +5,26 @@ interface WorkloadSummaryProps {
   assignments: Map<string, Assignment>;
 }
 
-const getBgColorClass = (color: string): string => {
-    switch (color) {
-        case 'teal': return 'bg-teal-500';
-        case 'blue': return 'bg-blue-500';
-        case 'yellow': return 'bg-yellow-500';
-        case 'purple': return 'bg-purple-500';
-        default: return 'bg-gray-500';
-    }
-};
+const StatCard: React.FC<{ icon: string; value: string | number; label: string; color: string }> = ({ icon, value, label, color }) => {
+    const colorClasses: Record<string, string> = {
+        teal: 'bg-teal-100 text-teal-600',
+        blue: 'bg-blue-100 text-blue-600',
+        yellow: 'bg-yellow-100 text-yellow-600',
+        purple: 'bg-purple-100 text-purple-600',
+    };
 
-const StatCard: React.FC<{ icon: string; value: string | number; label: string; color: string }> = ({ icon, value, label, color }) => (
-    <div className="flex items-center p-4 bg-white rounded-lg shadow border border-gray-200">
-        <div className={`p-3 mr-4 text-white ${getBgColorClass(color)} rounded-full`}>
-            <i className={`fas ${icon}`}></i>
+    return (
+    <div className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200">
+        <div className={`p-3 mr-4 rounded-full ${colorClasses[color] || 'bg-gray-100 text-gray-600'}`}>
+            <i className={`fas ${icon} fa-lg`}></i>
         </div>
         <div>
-            <p className="text-2xl font-bold text-gray-800">{value}</p>
-            <p className="text-sm text-gray-500">{label}</p>
+            <p className="text-3xl font-extrabold text-gray-800">{value}</p>
+            <p className="text-sm font-medium text-gray-500">{label}</p>
         </div>
     </div>
-);
+    )
+};
 
 
 const WorkloadSummary: React.FC<WorkloadSummaryProps> = ({ assignments }) => {
@@ -37,17 +36,17 @@ const WorkloadSummary: React.FC<WorkloadSummaryProps> = ({ assignments }) => {
     const totalPatients = new Set(allAssignments.flatMap(a => a.procedures.map(p => p.patientName))).size;
 
     if (totalPoints === 0) {
-        return null; // Don't show the summary if there's nothing to summarize
+        return null;
     }
 
   return (
-    <div className="mb-6">
+    <div>
         <h2 className="text-xl font-bold text-gray-700 mb-4">Daily Workload Overview</h2>
         <div className="grid gap-6 grid-cols-2 md:grid-cols-4">
            <StatCard icon="fa-star" value={totalPoints} label="Total Workload Points" color="teal" />
-           <StatCard icon="fa-user-injured" value={totalPatients} label="Total Patients" color="blue" />
+           <StatCard icon="fa-user-doctor" value={totalPatients} label="Total Patients" color="blue" />
            <StatCard icon="fa-clipboard-list" value={totalProcedures} label="Total Procedures" color="yellow" />
-           <StatCard icon="fa-user-md" value={assignedScholars} label="Assigned Scholars" color="purple" />
+           <StatCard icon="fa-users" value={assignedScholars} label="Assigned Scholars" color="purple" />
         </div>
     </div>
   );
