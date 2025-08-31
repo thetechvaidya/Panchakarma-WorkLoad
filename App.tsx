@@ -3,10 +3,12 @@ import type { Scholar, Assignment } from './types';
 import { INITIAL_SCHOLARS, DEFAULT_INPUT_TEXT } from './constants';
 import { parsePatientProcedures } from './services/parserService';
 import { distributeWorkload } from './services/distributionService';
+import { generateExportText } from './services/exportService';
 import Header from './components/Header';
 import ScholarSetup from './components/ScholarSetup';
 import ResultsDisplay from './components/ResultsDisplay';
 import WorkloadSummary from './components/WorkloadSummary';
+import ExportModal from './components/ExportModal';
 
 const App: React.FC = () => {
   const [inputText, setInputText] = useState<string>(DEFAULT_INPUT_TEXT);
@@ -14,6 +16,9 @@ const App: React.FC = () => {
   const [assignments, setAssignments] = useState<Map<string, Assignment>>(new Map());
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showResults, setShowResults] = useState<boolean>(false);
+  const [isExportModalOpen, setExportModalOpen] = useState<boolean>(false);
+  const [exportText, setExportText] = useState<string>('');
+
 
   const handleDistribute = useCallback(() => {
     setIsLoading(true);
@@ -34,6 +39,12 @@ const App: React.FC = () => {
     }, 500);
   }, [inputText, scholars]);
   
+  const handleExport = () => {
+    const text = generateExportText(assignments);
+    setExportText(text);
+    setExportModalOpen(true);
+  };
+
   // Auto-run on first load
   useEffect(() => {
     handleDistribute();
@@ -87,7 +98,7 @@ const App: React.FC = () => {
                 ) : (
                     <div className="flex flex-col gap-6">
                       <WorkloadSummary assignments={assignments} />
-                      <ResultsDisplay assignments={assignments} />
+                      <ResultsDisplay assignments={assignments} onExport={handleExport} />
                     </div>
                 )
             ) : (
@@ -101,6 +112,11 @@ const App: React.FC = () => {
           </div>
         </div>
       </main>
+      <ExportModal 
+        isOpen={isExportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        text={exportText}
+      />
     </div>
   );
 };

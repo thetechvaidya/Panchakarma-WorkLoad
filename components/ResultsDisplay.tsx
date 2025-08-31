@@ -4,6 +4,7 @@ import { Gender } from '../types';
 
 interface ResultsDisplayProps {
   assignments: Map<string, Assignment>;
+  onExport: () => void;
 }
 
 const getPointBadgeColor = (points: number) => {
@@ -60,7 +61,7 @@ const ScholarCard: React.FC<{ assignment: Assignment }> = ({ assignment }) => (
 );
 
 
-const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ assignments }) => {
+const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ assignments, onExport }) => {
   const sortedAssignments = Array.from(assignments.values()).sort((a, b) => {
     if (a.scholar.year !== b.scholar.year) return a.scholar.year - b.scholar.year;
     return a.scholar.name.localeCompare(b.scholar.name);
@@ -68,7 +69,16 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ assignments }) => {
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-700 mb-4">Assigned Workload</h2>
+        <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-700">Assigned Workload</h2>
+            <button
+                onClick={onExport}
+                className="bg-white text-teal-600 border border-teal-600 font-bold py-2 px-4 rounded-lg hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors duration-200 flex items-center space-x-2 text-sm"
+            >
+                <i className="fas fa-file-export"></i>
+                <span>Export Workload</span>
+            </button>
+        </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {sortedAssignments.map(assignment => (
           <ScholarCard key={assignment.scholar.id} assignment={assignment} />
