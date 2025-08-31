@@ -1,6 +1,6 @@
-import type { Patient, Scholar, Assignment, AssignedProcedure } from '../types.ts';
-import { Gender } from '../types.ts';
-import { WORKLOAD_DISTRIBUTION } from '../constants.ts';
+import type { Patient, Scholar, Assignment, AssignedProcedure } from '../types';
+import { Gender } from '../types';
+import { WORKLOAD_DISTRIBUTION } from '../constants';
 
 const findBestScholarForPatient = (
   patient: Patient,

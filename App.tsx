@@ -1,12 +1,12 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import type { Scholar, Assignment } from './types.ts';
-import { INITIAL_SCHOLARS, DEFAULT_INPUT_TEXT } from './constants.ts';
-import { parsePatientProcedures } from './services/parserService.ts';
-import { distributeWorkload } from './services/distributionService.ts';
-import Header from './components/Header.tsx';
-import ScholarSetup from './components/ScholarSetup.tsx';
-import ResultsDisplay from './components/ResultsDisplay.tsx';
-import WorkloadSummary from './components/WorkloadSummary.tsx';
+import type { Scholar, Assignment } from './types';
+import { INITIAL_SCHOLARS, DEFAULT_INPUT_TEXT } from './constants';
+import { parsePatientProcedures } from './services/parserService';
+import { distributeWorkload } from './services/distributionService';
+import Header from './components/Header';
+import ScholarSetup from './components/ScholarSetup';
+import ResultsDisplay from './components/ResultsDisplay';
+import WorkloadSummary from './components/WorkloadSummary';
 
 const App: React.FC = () => {
   const [inputText, setInputText] = useState<string>(DEFAULT_INPUT_TEXT);
