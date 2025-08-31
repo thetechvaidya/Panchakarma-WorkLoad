@@ -1,6 +1,5 @@
-
 import React from 'react';
-import type { Assignment } from '../types';
+import type { Assignment } from '../types.ts';
 
 interface WorkloadSummaryProps {
   assignments: Map<string, Assignment>;

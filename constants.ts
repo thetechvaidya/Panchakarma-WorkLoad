@@ -1,6 +1,5 @@
-
-import type { Scholar, ProcedureGradeInfo } from './types';
-import { Gender } from './types';
+import type { Scholar, ProcedureGradeInfo } from './types.ts';
+import { Gender } from './types.ts';
 
 export const INITIAL_SCHOLARS: Scholar[] = [
   // 1st Year

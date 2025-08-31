@@ -1,7 +1,6 @@
-
-import type { Patient, Procedure } from '../types';
-import { Gender } from '../types';
-import { PROCEDURE_GRADES, SORTED_PROCEDURE_KEYS } from '../constants';
+import type { Patient, Procedure } from '../types.ts';
+import { Gender } from '../types.ts';
+import { PROCEDURE_GRADES, SORTED_PROCEDURE_KEYS } from '../constants.ts';
 
 export const parsePatientProcedures = (text: string): Patient[] => {
   const patients: Patient[] = [];

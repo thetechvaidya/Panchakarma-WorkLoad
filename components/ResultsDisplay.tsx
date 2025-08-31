@@ -1,7 +1,6 @@
-
 import React from 'react';
-import type { Assignment, AssignedProcedure } from '../types';
-import { Gender } from '../types';
+import type { Assignment, AssignedProcedure } from '../types.ts';
+import { Gender } from '../types.ts';
 
 interface ResultsDisplayProps {
   assignments: Map<string, Assignment>;

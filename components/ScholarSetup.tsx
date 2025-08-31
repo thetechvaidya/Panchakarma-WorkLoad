@@ -1,7 +1,6 @@
-
 import React from 'react';
-import type { Scholar } from '../types';
-import { Gender } from '../types';
+import type { Scholar } from '../types.ts';
+import { Gender } from '../types.ts';
 
 interface ScholarSetupProps {
   scholars: Scholar[];
