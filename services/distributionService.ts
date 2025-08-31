@@ -1,148 +1,124 @@
-import type { Patient, Scholar, Assignment, AssignedProcedure } from '../types';
-import { Gender } from '../types';
-import { WORKLOAD_DISTRIBUTION } from '../constants';
+import type { Patient, Scholar, Assignment } from '../types';
+import { BASE_PATIENT_CAPACITY_PER_YEAR, MAX_PATIENT_CAPACITY_PER_YEAR } from '../constants';
+
+interface PatientWithPoints extends Patient {
+    totalPoints: number;
+}
+
+const assignPatientToScholar = (patient: PatientWithPoints, assignment: Assignment) => {
+    for (const procedure of patient.procedures) {
+        assignment.procedures.push({
+            patientName: patient.name,
+            patientGender: patient.gender,
+            procedure: procedure,
+        });
+        assignment.totalPoints += procedure.points;
+    }
+};
 
 const findBestScholarForPatient = (
-  patient: Patient,
-  totalSystemPoints: number,
-  scholars: Scholar[],
-  assignments: Map<string, Assignment>
+    patient: PatientWithPoints,
+    scholars: Scholar[],
+    assignments: Map<string, Assignment>,
+    capacityConfig: Record<number, number>
 ): Scholar | null => {
-  let availableScholars = [...scholars];
-  if (availableScholars.length === 0) return null;
+    let bestScholar: Scholar | null = null;
+    let minCost = Infinity;
 
-  // NEW Rule: Anuvasan Basti must be performed by a scholar of the same gender.
-  const hasAnuvasanBasti = patient.procedures.some(
-    p => p.name === 'Anuvasan Basti'
-  );
+    for (const scholar of scholars) {
+        const assignment = assignments.get(scholar.id)!;
+        const capacity = capacityConfig[scholar.year];
+        const patientNames = assignment.procedures.map(p => p.patientName);
+        if (patientNames.includes(patient.name)) continue; // Already assigned this patient to this scholar
+        
+        const currentPatientCount = new Set(patientNames).size;
 
-  if (hasAnuvasanBasti) {
-    availableScholars = availableScholars.filter(s => s.gender === patient.gender);
-    if (availableScholars.length === 0) {
-      return null; // No available scholars of the required gender
+        if (currentPatientCount >= capacity) {
+            continue;
+        }
+
+        const GENDER_MISMATCH_PENALTY = 1000;
+        const genderCost = scholar.gender === patient.gender ? 0 : GENDER_MISMATCH_PENALTY;
+        const workloadCost = assignment.totalPoints;
+        const totalCost = genderCost + workloadCost;
+
+        if (totalCost < minCost) {
+            minCost = totalCost;
+            bestScholar = scholar;
+        }
     }
-  }
-
-  // OLD rigid rule for NB/AB on males has been removed to improve balance.
-  
-  // General Rule: distribute based on workload targets
-  const scholarsByYear: Record<number, Scholar[]> = { 1: [], 2: [], 3: [] };
-  availableScholars.forEach(s => {
-    if (!scholarsByYear[s.year]) scholarsByYear[s.year] = [];
-    scholarsByYear[s.year].push(s);
-  });
-
-  const pointsByYear: Record<number, number> = {
-    1: (scholarsByYear[1] || []).reduce(
-      (sum, s) => sum + (assignments.get(s.id)?.totalPoints ?? 0),
-      0
-    ),
-    2: (scholarsByYear[2] || []).reduce(
-      (sum, s) => sum + (assignments.get(s.id)?.totalPoints ?? 0),
-      0
-    ),
-    3: (scholarsByYear[3] || []).reduce(
-      (sum, s) => sum + (assignments.get(s.id)?.totalPoints ?? 0),
-      0
-    ),
-  };
-
-  const deficitByYear = [1, 2, 3]
-    .map(year => {
-      if (!scholarsByYear[year] || scholarsByYear[year].length === 0)
-        return { year, deficit: -Infinity };
-      const targetPoints = totalSystemPoints * (WORKLOAD_DISTRIBUTION[year] ?? 0);
-      const currentPoints = pointsByYear[year];
-      return { year, deficit: targetPoints - currentPoints };
-    })
-    .sort((a, b) => b.deficit - a.deficit);
-
-  // Find a scholar from the most behind year group, preferring same gender
-  for (const { year } of deficitByYear) {
-    const scholarsInYear = scholarsByYear[year];
-    if (scholarsInYear && scholarsInYear.length > 0) {
-      const sameGender = scholarsInYear.filter(s => s.gender === patient.gender);
-      const differentGender = scholarsInYear.filter(s => s.gender !== patient.gender);
-
-      sameGender.sort((a, b) => (assignments.get(a.id)?.totalPoints ?? 0) - (assignments.get(b.id)?.totalPoints ?? 0));
-      differentGender.sort((a, b) => (assignments.get(a.id)?.totalPoints ?? 0) - (assignments.get(b.id)?.totalPoints ?? 0));
-      
-      const candidates = [...sameGender, ...differentGender];
-      if (candidates.length > 0) {
-        return candidates[0];
-      }
-    }
-  }
-
-  // Fallback
-  return availableScholars.sort(
-    (a, b) =>
-      (assignments.get(a.id)?.totalPoints ?? 0) -
-      (assignments.get(b.id)?.totalPoints ?? 0)
-  )[0];
+    return bestScholar;
 };
 
 export const distributeWorkload = (
   patients: Patient[],
-  scholars: Scholar[]
+  scholars: Scholar[],
+  previousAssignments: Map<string, string> // Map<patientName, scholarName>
 ): Map<string, Assignment> => {
-  const assignments = new Map<string, Assignment>();
-  scholars.forEach(s => {
-    assignments.set(s.id, { scholar: s, procedures: [], totalPoints: 0 });
-  });
+    const assignments = new Map<string, Assignment>();
+    const postedScholars = scholars.filter(s => s.isPosted);
 
-  const patientWorkloads = patients
-    .filter(p => !p.isAttendant && p.procedures.length > 0)
-    .map(p => ({
-      patient: p,
-      totalPoints: p.procedures.reduce((sum, proc) => sum + proc.points, 0),
-    }))
-    .sort((a, b) => b.totalPoints - a.totalPoints);
+    if (postedScholars.length === 0 || patients.length === 0) return assignments;
 
-  if (patientWorkloads.length === 0) {
+    const scholarNameMap = new Map(postedScholars.map(s => [s.name, s]));
+
+    postedScholars.forEach(s => {
+        assignments.set(s.id, { scholar: s, procedures: [], totalPoints: 0 });
+    });
+
+    const patientsWithPoints: PatientWithPoints[] = patients
+        .filter(p => !p.isAttendant && p.procedures.length > 0)
+        .map(p => ({
+            ...p,
+            totalPoints: p.procedures.reduce((sum, proc) => sum + proc.points, 0)
+        }));
+
+    patientsWithPoints.sort((a, b) => b.totalPoints - a.totalPoints);
+
+    const unassignedPatients = new Set<PatientWithPoints>(patientsWithPoints);
+
+    // --- PRIORITY 1: Patient Continuity ---
+    // Pre-assign returning patients to their previous scholars.
+    for (const patient of patientsWithPoints) {
+        const previousScholarName = previousAssignments.get(patient.name);
+        if (previousScholarName) {
+            const scholar = scholarNameMap.get(previousScholarName);
+            if (scholar && scholar.isPosted) {
+                const assignment = assignments.get(scholar.id);
+                if (assignment) {
+                    assignPatientToScholar(patient, assignment);
+                    unassignedPatients.delete(patient);
+                }
+            }
+        }
+    }
+    
+    const remainingPatients = Array.from(unassignedPatients);
+
+    // --- PRIORITY 2: Fairness-First for New Patients ---
+
+    // --- PHASE 1: Base Allocation for New Patients ---
+    for (const patient of remainingPatients) {
+        if (!unassignedPatients.has(patient)) continue; 
+
+        const bestScholar = findBestScholarForPatient(patient, postedScholars, assignments, BASE_PATIENT_CAPACITY_PER_YEAR);
+
+        if (bestScholar) {
+            assignPatientToScholar(patient, assignments.get(bestScholar.id)!);
+            unassignedPatients.delete(patient);
+        }
+    }
+
+    // --- PHASE 2: Max Allocation for Remaining New Patients ---
+    const remainingAfterPhase1 = Array.from(unassignedPatients);
+    for (const patient of remainingAfterPhase1) {
+        const bestScholar = findBestScholarForPatient(patient, postedScholars, assignments, MAX_PATIENT_CAPACITY_PER_YEAR);
+        
+        if (bestScholar) {
+            assignPatientToScholar(patient, assignments.get(bestScholar.id)!);
+            unassignedPatients.delete(patient);
+        }
+    }
+
     return assignments;
-  }
-
-  const totalSystemPoints = patientWorkloads.reduce(
-    (sum, item) => sum + item.totalPoints,
-    0
-  );
-
-  const postedScholars = scholars.filter(s => s.isPosted);
-  const nonPostedScholars = scholars.filter(s => !s.isPosted);
-
-  for (const { patient, totalPoints } of patientWorkloads) {
-    let bestScholar = findBestScholarForPatient(
-      patient,
-      totalSystemPoints,
-      postedScholars,
-      assignments
-    );
-
-    if (!bestScholar) {
-      bestScholar = findBestScholarForPatient(
-        patient,
-        totalSystemPoints,
-        nonPostedScholars,
-        assignments
-      );
-    }
-
-    if (bestScholar) {
-      const assignment = assignments.get(bestScholar.id);
-      if (assignment) {
-        const proceduresToAssign: AssignedProcedure[] = patient.procedures.map(
-          proc => ({
-            patientName: patient.name,
-            patientGender: patient.gender,
-            procedure: proc,
-          })
-        );
-        assignment.procedures.push(...proceduresToAssign);
-        assignment.totalPoints += totalPoints;
-      }
-    }
-  }
-
-  return assignments;
 };

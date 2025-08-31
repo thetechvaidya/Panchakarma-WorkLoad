@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import type { Scholar, Assignment } from './types';
 import { INITIAL_SCHOLARS, DEFAULT_INPUT_TEXT } from './constants';
-import { parsePatientProcedures } from './services/parserService';
+import { parsePatientProcedures, parsePreviousAssignments } from './services/parserService';
 import { distributeWorkload } from './services/distributionService';
 import { generateExportText } from './services/exportService';
 import Header from './components/Header';
@@ -9,9 +9,11 @@ import ScholarSetup from './components/ScholarSetup';
 import ResultsDisplay from './components/ResultsDisplay';
 import WorkloadSummary from './components/WorkloadSummary';
 import ExportModal from './components/ExportModal';
+import RulesDisplay from './components/RulesDisplay';
 
 const App: React.FC = () => {
   const [inputText, setInputText] = useState<string>(DEFAULT_INPUT_TEXT);
+  const [previousDayInputText, setPreviousDayInputText] = useState<string>('');
   const [scholars, setScholars] = useState<Scholar[]>(INITIAL_SCHOLARS);
   const [assignments, setAssignments] = useState<Map<string, Assignment>>(new Map());
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -28,7 +30,8 @@ const App: React.FC = () => {
     setTimeout(() => {
         try {
             const patients = parsePatientProcedures(inputText);
-            const newAssignments = distributeWorkload(patients, scholars);
+            const previousAssignments = parsePreviousAssignments(previousDayInputText);
+            const newAssignments = distributeWorkload(patients, scholars, previousAssignments);
             setAssignments(newAssignments);
         } catch(error) {
             console.error("Error during workload distribution:", error);
@@ -37,7 +40,7 @@ const App: React.FC = () => {
             setIsLoading(false);
         }
     }, 500);
-  }, [inputText, scholars]);
+  }, [inputText, scholars, previousDayInputText]);
   
   const handleExport = () => {
     const text = generateExportText(assignments);
@@ -58,14 +61,32 @@ const App: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 flex flex-col gap-6">
             <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-              <h3 className="text-lg font-bold text-gray-800 mb-1">Enter Daily Procedures</h3>
-              <p className="text-sm font-medium text-gray-500 mb-3">Procedures for 31/08/25</p>
-              <textarea
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                className="w-full h-96 p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow duration-200 text-sm font-mono"
-                placeholder="Paste the procedure list here..."
-              />
+                <h3 className="text-lg font-bold text-gray-800 mb-4">Procedure Lists</h3>
+                <div className="mb-6">
+                    <label htmlFor="previousDayInput" className="block text-sm font-bold text-gray-700 mb-1">
+                        Previous Day's Final List (for continuity)
+                    </label>
+                    <textarea
+                        id="previousDayInput"
+                        value={previousDayInputText}
+                        onChange={(e) => setPreviousDayInputText(e.target.value)}
+                        className="w-full h-48 p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow duration-200 text-sm font-mono"
+                        placeholder="Paste the final distributed list from the previous day here to maintain patient-scholar assignments..."
+                    />
+                </div>
+                 <div>
+                    <label htmlFor="todayInput" className="block text-sm font-bold text-gray-700 mb-1">
+                        Today's Procedures to be Assigned
+                    </label>
+                    <p className="text-sm font-medium text-gray-500 mb-3">Procedures for 31/08/25</p>
+                    <textarea
+                        id="todayInput"
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                        className="w-full h-96 p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow duration-200 text-sm font-mono"
+                        placeholder="Paste the procedure list here..."
+                    />
+                 </div>
               <button
                 onClick={handleDistribute}
                 disabled={isLoading}
@@ -85,6 +106,7 @@ const App: React.FC = () => {
               </button>
             </div>
             <ScholarSetup scholars={scholars} setScholars={setScholars} />
+            <RulesDisplay />
           </div>
           <div className="lg:col-span-2">
             {showResults ? (

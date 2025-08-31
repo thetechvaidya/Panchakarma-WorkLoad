@@ -1,4 +1,5 @@
 
+
 export enum Gender {
   MALE = 'M',
   FEMALE = 'F',
@@ -26,6 +27,7 @@ export interface Procedure {
 }
 
 export interface Patient {
+  id: string;
   name: string;
   gender: Gender;
   procedures: Procedure[];
