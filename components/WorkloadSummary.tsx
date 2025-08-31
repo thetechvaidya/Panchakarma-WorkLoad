@@ -5,9 +5,19 @@ interface WorkloadSummaryProps {
   assignments: Map<string, Assignment>;
 }
 
+const getBgColorClass = (color: string): string => {
+    switch (color) {
+        case 'teal': return 'bg-teal-500';
+        case 'blue': return 'bg-blue-500';
+        case 'yellow': return 'bg-yellow-500';
+        case 'purple': return 'bg-purple-500';
+        default: return 'bg-gray-500';
+    }
+};
+
 const StatCard: React.FC<{ icon: string; value: string | number; label: string; color: string }> = ({ icon, value, label, color }) => (
     <div className="flex items-center p-4 bg-white rounded-lg shadow border border-gray-200">
-        <div className={`p-3 mr-4 text-white bg-${color}-500 rounded-full`}>
+        <div className={`p-3 mr-4 text-white ${getBgColorClass(color)} rounded-full`}>
             <i className={`fas ${icon}`}></i>
         </div>
         <div>
