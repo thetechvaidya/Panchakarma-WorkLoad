@@ -1,0 +1,5 @@
+{
+  "name": "Panchkarma Workload Distributor",
+  "description": "An intelligent tool to help distribute daily patient procedures among PG scholars based on therapy grades and departmental rules, ensuring an even and fair workload.",
+  "requestFramePermissions": []
+}
