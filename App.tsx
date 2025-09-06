@@ -10,6 +10,7 @@ import ResultsDisplay from './components/ResultsDisplay';
 import WorkloadSummary from './components/WorkloadSummary';
 import ExportModal from './components/ExportModal';
 import RulesDisplay from './components/RulesDisplay';
+import ProcedureGradeTable from './components/ProcedureGradeTable';
 
 const App: React.FC = () => {
   const [inputText, setInputText] = useState<string>(DEFAULT_INPUT_TEXT);
@@ -106,6 +107,7 @@ const App: React.FC = () => {
               </button>
             </div>
             <ScholarSetup scholars={scholars} setScholars={setScholars} />
+            <ProcedureGradeTable />
             <RulesDisplay />
           </div>
           <div className="lg:col-span-2">
