@@ -21,6 +21,7 @@ const App: React.FC = () => {
   const [showResults, setShowResults] = useState<boolean>(false);
   const [isExportModalOpen, setExportModalOpen] = useState<boolean>(false);
   const [exportText, setExportText] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'today' | 'previous'>('today');
 
 
   const handleDistribute = useCallback(() => {
@@ -56,30 +57,44 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-gray-50">
       <Header />
       <main className="container mx-auto p-4 md:p-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 flex flex-col gap-6">
-            <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">Procedure Lists</h3>
-                <div className="mb-6">
-                    <label htmlFor="previousDayInput" className="block text-sm font-bold text-gray-700 mb-1">
-                        Previous Day's Final List (for continuity)
-                    </label>
-                    <textarea
-                        id="previousDayInput"
-                        value={previousDayInputText}
-                        onChange={(e) => setPreviousDayInputText(e.target.value)}
-                        className="w-full h-48 p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow duration-200 text-sm font-mono"
-                        placeholder="Paste the final distributed list from the previous day here to maintain patient-scholar assignments..."
-                    />
-                </div>
-                 <div>
-                    <label htmlFor="todayInput" className="block text-sm font-bold text-gray-700 mb-1">
+            <div className="bg-white rounded-xl shadow-md border border-gray-200">
+               <div className="border-b border-gray-200">
+                <nav className="-mb-px flex space-x-1 px-4" aria-label="Tabs">
+                  <button
+                    onClick={() => setActiveTab('today')}
+                    className={`${
+                      activeTab === 'today'
+                        ? 'border-teal-500 text-teal-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    } whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-colors`}
+                  >
+                    Today's Procedures
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('previous')}
+                    className={`${
+                      activeTab === 'previous'
+                        ? 'border-teal-500 text-teal-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    } whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-colors`}
+                    aria-current={activeTab === 'previous' ? 'page' : undefined}
+                  >
+                    Continuity List
+                    <span className="ml-2 bg-amber-100 text-amber-800 text-xs font-medium px-2 py-0.5 rounded-full">Optional</span>
+                  </button>
+                </nav>
+              </div>
+              <div className="p-6">
+                {activeTab === 'today' ? (
+                  <div>
+                    <label htmlFor="todayInput" className="block text-sm font-bold text-gray-700 mb-2">
                         Today's Procedures to be Assigned
                     </label>
-                    <p className="text-sm font-medium text-gray-500 mb-3">Procedures for 31/08/25</p>
                     <textarea
                         id="todayInput"
                         value={inputText}
@@ -87,24 +102,42 @@ const App: React.FC = () => {
                         className="w-full h-96 p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow duration-200 text-sm font-mono"
                         placeholder="Paste the procedure list here..."
                     />
-                 </div>
-              <button
-                onClick={handleDistribute}
-                disabled={isLoading}
-                className="mt-4 w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center space-x-2"
-              >
-                {isLoading ? (
-                  <>
-                    <i className="fas fa-spinner fa-spin"></i>
-                    <span>Distributing...</span>
-                  </>
+                  </div>
                 ) : (
-                  <>
-                    <i className="fa-solid fa-arrows-split-up-and-left"></i>
-                    <span>Distribute Workload</span>
-                  </>
+                  <div>
+                    <label htmlFor="previousDayInput" className="block text-sm font-bold text-gray-700 mb-2">
+                        Previous Day's Final List
+                    </label>
+                    <p className="text-sm text-gray-500 mb-3">Paste yesterday's exported list here to maintain patient-scholar continuity.</p>
+                    <textarea
+                        id="previousDayInput"
+                        value={previousDayInputText}
+                        onChange={(e) => setPreviousDayInputText(e.target.value)}
+                        className="w-full h-96 p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow duration-200 text-sm font-mono"
+                        placeholder="Paste the final distributed list from the previous day here..."
+                    />
+                  </div>
                 )}
-              </button>
+              </div>
+              <div className="p-4 bg-gray-50/75 border-t border-gray-200">
+                <button
+                    onClick={handleDistribute}
+                    disabled={isLoading}
+                    className="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center space-x-2 shadow hover:shadow-lg"
+                >
+                    {isLoading ? (
+                    <>
+                        <i className="fas fa-spinner fa-spin"></i>
+                        <span>Distributing...</span>
+                    </>
+                    ) : (
+                    <>
+                        <i className="fa-solid fa-arrows-split-up-and-left"></i>
+                        <span>Distribute Workload</span>
+                    </>
+                    )}
+                </button>
+              </div>
             </div>
             <ScholarSetup scholars={scholars} setScholars={setScholars} />
             <ProcedureGradeTable />

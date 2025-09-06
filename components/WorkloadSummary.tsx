@@ -9,18 +9,20 @@ const StatCard: React.FC<{ icon: string; value: string | number; label: string; 
     const colorClasses: Record<string, string> = {
         teal: 'bg-teal-100 text-teal-600',
         blue: 'bg-blue-100 text-blue-600',
-        yellow: 'bg-yellow-100 text-yellow-600',
-        purple: 'bg-purple-100 text-purple-600',
+        yellow: 'bg-amber-100 text-amber-600',
+        purple: 'bg-violet-100 text-violet-600',
     };
 
     return (
-    <div className="flex items-center p-4 bg-white rounded-xl shadow-md border border-gray-200">
-        <div className={`p-3 mr-4 rounded-full ${colorClasses[color] || 'bg-gray-100 text-gray-600'}`}>
-            <i className={`fas ${icon} fa-lg`}></i>
-        </div>
-        <div>
-            <p className="text-3xl font-extrabold text-gray-800">{value}</p>
-            <p className="text-sm font-medium text-gray-500">{label}</p>
+    <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+        <div className="flex items-center space-x-4">
+            <div className={`flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-lg ${colorClasses[color] || 'bg-gray-100 text-gray-600'}`}>
+                <i className={`fas ${icon} text-xl`}></i>
+            </div>
+            <div>
+                <p className="text-2xl font-bold text-gray-900">{value}</p>
+                <p className="text-sm font-medium text-gray-500">{label}</p>
+            </div>
         </div>
     </div>
     )
