@@ -16,38 +16,6 @@ const assignPatientToScholar = (patient: PatientWithPoints, assignment: Assignme
     }
 };
 
-const findBestScholarForPatient = (
-    patient: PatientWithPoints,
-    scholars: Scholar[],
-    assignments: Map<string, Assignment>
-): Scholar | null => {
-    let bestScholar: Scholar | null = null;
-    let minCost = Infinity;
-
-    for (const scholar of scholars) {
-        const assignment = assignments.get(scholar.id)!;
-
-        // Skip if this scholar has already been assigned this patient
-        if (assignment.procedures.some(p => p.patientName === patient.name)) {
-            continue;
-        }
-
-        const GENDER_MISMATCH_PENALTY = 1000;
-        const genderCost = scholar.gender === patient.gender ? 0 : GENDER_MISMATCH_PENALTY;
-        
-        // Cost is the absolute deviation from the target *after* adding the patient.
-        const newTotalPoints = assignment.totalPoints + patient.totalPoints;
-        const targetDeviationCost = Math.abs(newTotalPoints - assignment.targetPoints);
-
-        const totalCost = genderCost + targetDeviationCost;
-
-        if (totalCost < minCost) {
-            minCost = totalCost;
-            bestScholar = scholar;
-        }
-    }
-    return bestScholar;
-};
 
 export const distributeWorkload = (
   patients: Patient[],
@@ -78,12 +46,9 @@ export const distributeWorkload = (
         assignments.set(s.id, { scholar: s, procedures: [], totalPoints: 0, targetPoints });
     });
 
-    patientsWithPoints.sort((a, b) => b.totalPoints - a.totalPoints);
-
     const unassignedPatients = new Set<PatientWithPoints>(patientsWithPoints);
 
     // --- PRIORITY 1: Patient Continuity ---
-    // Pre-assign returning patients to their previous scholars.
     for (const patient of patientsWithPoints) {
         const previousScholarName = previousAssignments.get(patient.name);
         if (previousScholarName) {
@@ -98,14 +63,75 @@ export const distributeWorkload = (
         }
     }
     
-    // --- PRIORITY 2: Optimal Distribution for New Patients ---
-    const remainingPatients = Array.from(unassignedPatients).sort((a, b) => b.totalPoints - a.totalPoints);
+    // --- PRIORITY 2: Equity-First Iterative Distribution ---
+    // This new logic replaces the old greedy algorithm.
+    // It repeatedly finds the "neediest" scholar and assigns them the best-fitting patient.
+    while (unassignedPatients.size > 0) {
+        let neediestScholar: Scholar | null = null;
+        let minNeediness = Infinity;
 
-    for (const patient of remainingPatients) {
-        const bestScholar = findBestScholarForPatient(patient, postedScholars, assignments);
-        
-        if (bestScholar) {
-            assignPatientToScholar(patient, assignments.get(bestScholar.id)!);
+        // 1. Find the neediest scholar (one who is furthest below their target)
+        for (const scholar of postedScholars) {
+            const assignment = assignments.get(scholar.id)!;
+            // Use ratio to normalize neediness across different target points
+            const neediness = assignment.targetPoints > 0 ? assignment.totalPoints / assignment.targetPoints : Infinity;
+            if (neediness < minNeediness) {
+                minNeediness = neediness;
+                neediestScholar = scholar;
+            }
+        }
+
+        // If all scholars have met/exceeded their targets or no one is left, break (or handle differently)
+        // For now, if we can't find a "needy" one, we'll just pick one to ensure all patients are assigned.
+        if (!neediestScholar) {
+            // This might happen if all targets are 0 or met. Fallback to the scholar with the least points.
+            let scholarWithLeastPoints: Scholar | null = null;
+            let minPoints = Infinity;
+            for (const scholar of postedScholars) {
+                const assignment = assignments.get(scholar.id)!;
+                if(assignment.totalPoints < minPoints) {
+                    minPoints = assignment.totalPoints;
+                    scholarWithLeastPoints = scholar;
+                }
+            }
+            neediestScholar = scholarWithLeastPoints;
+        }
+
+        if (!neediestScholar) break; // No scholars to assign to.
+
+        // 2. Find the best patient for THIS scholar from the unassigned pool
+        let bestPatientForScholar: PatientWithPoints | null = null;
+        let minCost = Infinity;
+        const scholarAssignment = assignments.get(neediestScholar.id)!;
+
+        for (const patient of unassignedPatients) {
+            // A much lower penalty, making it a preference, not a hard rule.
+            const GENDER_MISMATCH_PENALTY = 5; 
+            const genderCost = neediestScholar.gender === patient.gender ? 0 : GENDER_MISMATCH_PENALTY;
+
+            const newTotalPoints = scholarAssignment.totalPoints + patient.totalPoints;
+            
+            // The cost is a combination of how far it pushes from the target and the gender penalty.
+            // We slightly penalize going over the target more to avoid large over-allocations.
+            const deviation = newTotalPoints - scholarAssignment.targetPoints;
+            const pointFitCost = deviation > 0 ? deviation * 1.5 : Math.abs(deviation);
+            
+            const totalCost = genderCost + pointFitCost;
+
+            if (totalCost < minCost) {
+                minCost = totalCost;
+                bestPatientForScholar = patient;
+            }
+        }
+
+        // 3. Assign the best-fit patient to the neediest scholar.
+        if (bestPatientForScholar) {
+            assignPatientToScholar(bestPatientForScholar, scholarAssignment);
+            unassignedPatients.delete(bestPatientForScholar);
+        } else {
+            // If for some reason no best patient was found (e.g., all patients evaluated to infinity cost),
+            // break the loop to prevent an infinite loop. This shouldn't happen with the current logic.
+            break;
         }
     }
 

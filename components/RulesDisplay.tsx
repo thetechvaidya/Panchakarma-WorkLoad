@@ -18,20 +18,20 @@ const RulesDisplay: React.FC = () => {
             How It Works: Distribution Logic
         </h3>
         <p className="text-sm text-gray-700 mb-6">
-            The system follows a strict order of rules to ensure continuity of care and a balanced workload distribution.
+            The system follows a new <strong className="text-teal-700">Equity-First</strong> model to ensure continuity and a truly balanced workload.
         </p>
 
         <RuleItem title="Rule 1: Patient Continuity (Highest Priority)" icon="fa-user-clock">
             <p>
-                If you provide a "Previous Day's List", the system's first action is to assign returning patients to their previously assigned scholar. This ensures a patient remains with the same doctor.
+                If you provide a "Continuity List", the system's first action is to assign returning patients to their previously assigned scholar. This is a clinical priority.
             </p>
         </RuleItem>
-        
+
         <div className="border-t my-4"></div>
 
-        <RuleItem title="Rule 2: Intelligent Workload Targeting" icon="fa-bullseye">
+        <RuleItem title="Rule 2: Workload Targeting" icon="fa-bullseye">
             <p>
-                Instead of a fixed patient count, the system uses a weighted point system to create a fair workload target for each scholar based on their year.
+                The system uses a weighted point system to create a fair workload target for each scholar based on their year.
             </p>
             <ul className="list-disc list-inside space-y-1 font-semibold text-gray-700">
                 <li>1st Year Weight: <span className="font-extrabold text-sky-600">21 points</span></li>
@@ -45,15 +45,15 @@ const RulesDisplay: React.FC = () => {
 
         <div className="border-t my-4"></div>
 
-        <RuleItem title="Rule 3: Optimal Patient Assignment" icon="fa-puzzle-piece">
+        <RuleItem title="Rule 3: Equity-First Assignment (New Core Logic)" icon="fa-balance-scale-right">
             <p>
-               After handling continuity, new patients are assigned one by one to achieve the fairest distribution:
+               All remaining patients are assigned using an iterative process that constantly prioritizes fairness:
             </p>
              <ol className="list-decimal list-inside space-y-2">
-                <li><strong className="font-semibold text-gray-800">Biggest Patient First:</strong> Patients with the highest total procedure points are assigned first. This makes it easier to balance the remaining smaller workloads.</li>
-                <li><strong className="font-semibold text-gray-800">Closest to Target:</strong> Each patient is assigned to the available scholar who will be <strong className="text-teal-700">closest to their point target</strong> after receiving the patient.</li>
-                <li><strong className="font-semibold text-gray-800">Gender Priority:</strong> The system heavily prioritizes assigning patients to scholars of the same gender.</li>
-                <li><strong className="font-semibold text-gray-800">Patient Integrity:</strong> The system aims to assign all procedures for a single patient to one scholar to maintain clarity.</li>
+                <li><strong className="font-semibold text-gray-800">Find the Neediest Scholar:</strong> In each step, the system identifies the scholar who is currently <strong className="text-teal-700">furthest below their point target</strong>.</li>
+                <li><strong className="font-semibold text-gray-800">Find the Best Patient Fit:</strong> It then analyzes all unassigned patients to find the single best one for that specific scholar—one that gets them closer to their target.</li>
+                <li><strong className="font-semibold text-gray-800">Flexible Gender Priority:</strong> The system prefers matching patient and scholar gender, but <strong className="text-orange-600">it will allow a mismatch</strong> if necessary to create a more balanced and fair point distribution.</li>
+                <li><strong className="font-semibold text-gray-800">Repeat Until Done:</strong> This process repeats—find the neediest scholar, give them the best-fitting patient—until all procedures are assigned. This ensures the workload is built up evenly for everyone.</li>
             </ol>
         </RuleItem>
     </div>
