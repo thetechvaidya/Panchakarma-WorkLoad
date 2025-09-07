@@ -51,8 +51,11 @@ const ScholarCard: React.FC<{ assignment: Assignment }> = ({ assignment }) => {
                 </p>
             </div>
             <div className="text-right flex-shrink-0">
-                <p className="text-4xl font-extrabold text-teal-600">{assignment.totalPoints}</p>
-                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Total Points</p>
+                <p className="text-4xl font-extrabold text-teal-600">
+                    {assignment.totalPoints}
+                    <span className="text-xl font-semibold text-gray-400">/{Math.round(assignment.targetPoints)}</span>
+                </p>
+                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Actual / Target</p>
             </div>
             </div>
             <div className="p-1.5 flex-grow overflow-y-auto bg-gray-50/75">

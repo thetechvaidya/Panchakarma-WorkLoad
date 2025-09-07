@@ -73,16 +73,10 @@ export const PROCEDURE_GRADES: Record<string, ProcedureGradeInfo> = {
 // Sort keys by length descending to match longer phrases first
 export const SORTED_PROCEDURE_KEYS = Object.keys(PROCEDURE_GRADES).sort((a, b) => b.length - a.length);
 
-export const BASE_PATIENT_CAPACITY_PER_YEAR: Record<number, number> = {
-  1: 3, // 1st Year Scholars base allocation
-  2: 2, // 2nd Year Scholars base allocation
-  3: 1, // 3rd Year Scholars base allocation
-};
-
-export const MAX_PATIENT_CAPACITY_PER_YEAR: Record<number, number> = {
-  1: 4, // 1st Year Scholars max allocation
-  2: 3, // 2nd Year Scholars max allocation
-  3: 2, // 3rd Year Scholars max allocation
+export const YEAR_WEIGHTS: Record<number, number> = {
+  1: 21, // 1st Year Scholars
+  2: 15, // 2nd Year Scholars
+  3: 7,  // 3rd Year Scholars
 };
 
 

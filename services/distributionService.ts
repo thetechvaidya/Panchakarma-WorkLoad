@@ -1,5 +1,5 @@
 import type { Patient, Scholar, Assignment } from '../types';
-import { BASE_PATIENT_CAPACITY_PER_YEAR, MAX_PATIENT_CAPACITY_PER_YEAR } from '../constants';
+import { YEAR_WEIGHTS } from '../constants';
 
 interface PatientWithPoints extends Patient {
     totalPoints: number;
@@ -19,28 +19,27 @@ const assignPatientToScholar = (patient: PatientWithPoints, assignment: Assignme
 const findBestScholarForPatient = (
     patient: PatientWithPoints,
     scholars: Scholar[],
-    assignments: Map<string, Assignment>,
-    capacityConfig: Record<number, number>
+    assignments: Map<string, Assignment>
 ): Scholar | null => {
     let bestScholar: Scholar | null = null;
     let minCost = Infinity;
 
     for (const scholar of scholars) {
         const assignment = assignments.get(scholar.id)!;
-        const capacity = capacityConfig[scholar.year];
-        const patientNames = assignment.procedures.map(p => p.patientName);
-        if (patientNames.includes(patient.name)) continue; // Already assigned this patient to this scholar
-        
-        const currentPatientCount = new Set(patientNames).size;
 
-        if (currentPatientCount >= capacity) {
+        // Skip if this scholar has already been assigned this patient
+        if (assignment.procedures.some(p => p.patientName === patient.name)) {
             continue;
         }
 
         const GENDER_MISMATCH_PENALTY = 1000;
         const genderCost = scholar.gender === patient.gender ? 0 : GENDER_MISMATCH_PENALTY;
-        const workloadCost = assignment.totalPoints;
-        const totalCost = genderCost + workloadCost;
+        
+        // Cost is the absolute deviation from the target *after* adding the patient.
+        const newTotalPoints = assignment.totalPoints + patient.totalPoints;
+        const targetDeviationCost = Math.abs(newTotalPoints - assignment.targetPoints);
+
+        const totalCost = genderCost + targetDeviationCost;
 
         if (totalCost < minCost) {
             minCost = totalCost;
@@ -62,16 +61,22 @@ export const distributeWorkload = (
 
     const scholarNameMap = new Map(postedScholars.map(s => [s.name, s]));
 
-    postedScholars.forEach(s => {
-        assignments.set(s.id, { scholar: s, procedures: [], totalPoints: 0 });
-    });
-
     const patientsWithPoints: PatientWithPoints[] = patients
         .filter(p => !p.isAttendant && p.procedures.length > 0)
         .map(p => ({
             ...p,
             totalPoints: p.procedures.reduce((sum, proc) => sum + proc.points, 0)
         }));
+
+    // --- Target Calculation ---
+    const totalProcedurePoints = patientsWithPoints.reduce((sum, p) => sum + p.totalPoints, 0);
+    const totalWeight = postedScholars.reduce((sum, s) => sum + (YEAR_WEIGHTS[s.year] || 0), 0);
+
+    postedScholars.forEach(s => {
+        const scholarWeight = YEAR_WEIGHTS[s.year] || 0;
+        const targetPoints = totalWeight > 0 ? (scholarWeight / totalWeight) * totalProcedurePoints : 0;
+        assignments.set(s.id, { scholar: s, procedures: [], totalPoints: 0, targetPoints });
+    });
 
     patientsWithPoints.sort((a, b) => b.totalPoints - a.totalPoints);
 
@@ -93,30 +98,14 @@ export const distributeWorkload = (
         }
     }
     
-    const remainingPatients = Array.from(unassignedPatients);
+    // --- PRIORITY 2: Optimal Distribution for New Patients ---
+    const remainingPatients = Array.from(unassignedPatients).sort((a, b) => b.totalPoints - a.totalPoints);
 
-    // --- PRIORITY 2: Fairness-First for New Patients ---
-
-    // --- PHASE 1: Base Allocation for New Patients ---
     for (const patient of remainingPatients) {
-        if (!unassignedPatients.has(patient)) continue; 
-
-        const bestScholar = findBestScholarForPatient(patient, postedScholars, assignments, BASE_PATIENT_CAPACITY_PER_YEAR);
-
-        if (bestScholar) {
-            assignPatientToScholar(patient, assignments.get(bestScholar.id)!);
-            unassignedPatients.delete(patient);
-        }
-    }
-
-    // --- PHASE 2: Max Allocation for Remaining New Patients ---
-    const remainingAfterPhase1 = Array.from(unassignedPatients);
-    for (const patient of remainingAfterPhase1) {
-        const bestScholar = findBestScholarForPatient(patient, postedScholars, assignments, MAX_PATIENT_CAPACITY_PER_YEAR);
+        const bestScholar = findBestScholarForPatient(patient, postedScholars, assignments);
         
         if (bestScholar) {
             assignPatientToScholar(patient, assignments.get(bestScholar.id)!);
-            unassignedPatients.delete(patient);
         }
     }
 

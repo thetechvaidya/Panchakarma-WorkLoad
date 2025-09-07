@@ -18,41 +18,43 @@ const RulesDisplay: React.FC = () => {
             How It Works: Distribution Logic
         </h3>
         <p className="text-sm text-gray-700 mb-6">
-            The system follows a strict order of rules to ensure continuity of care and fair workload distribution.
+            The system follows a strict order of rules to ensure continuity of care and a balanced workload distribution.
         </p>
 
         <RuleItem title="Rule 1: Patient Continuity (Highest Priority)" icon="fa-user-clock">
             <p>
-                If you provide a "Previous Day's List", the system's first action is to assign returning patients to their previously assigned scholar.
+                If you provide a "Previous Day's List", the system's first action is to assign returning patients to their previously assigned scholar. This ensures a patient remains with the same doctor.
             </p>
-             <ul className="list-disc list-inside space-y-1">
-                <li>This rule is absolute and is performed before any other logic.</li>
-                <li>It ensures a patient remains with the same scholar until discharge.</li>
-            </ul>
         </RuleItem>
         
         <div className="border-t my-4"></div>
 
-        <RuleItem title="Rule 2: Fairness-First for New Patients" icon="fa-balance-scale-right">
+        <RuleItem title="Rule 2: Intelligent Workload Targeting" icon="fa-bullseye">
             <p>
-                After continuity is handled, all new patients are distributed using the "Fairness-First" algorithm, which balances workload at every step:
+                Instead of a fixed patient count, the system uses a weighted point system to create a fair workload target for each scholar based on their year.
             </p>
-            <ol className="list-decimal list-inside space-y-1 mt-2">
-                <li><strong className="font-semibold text-gray-800">Gender Matching:</strong> It strongly prefers assigning patients to a same-gender scholar.</li>
-                <li><strong className="font-semibold text-gray-800">Lowest Workload:</strong> It then <strong className="text-teal-700">always</strong> assigns the patient to the eligible scholar with the lowest current point total.</li>
-            </ol>
+            <ul className="list-disc list-inside space-y-1 font-semibold text-gray-700">
+                <li>1st Year Weight: <span className="font-extrabold text-sky-600">21 points</span></li>
+                <li>2nd Year Weight: <span className="font-extrabold text-indigo-600">15 points</span></li>
+                <li>3rd Year Weight: <span className="font-extrabold text-emerald-600">7 points</span></li>
+            </ul>
+            <p className="mt-2">
+                These weights are used to calculate a dynamic point target for each scholar relative to the total points of all procedures for the day.
+            </p>
         </RuleItem>
 
         <div className="border-t my-4"></div>
 
-        <RuleItem title="Rule 3: Two-Phase Allocation" icon="fa-layer-group">
+        <RuleItem title="Rule 3: Optimal Patient Assignment" icon="fa-puzzle-piece">
             <p>
-               The fairness logic is applied across two phases to ensure everyone gets work before any scholar gets a heavier load.
+               After handling continuity, new patients are assigned one by one to achieve the fairest distribution:
             </p>
-             <ul className="list-disc list-inside font-semibold">
-                <li><strong className="font-semibold text-gray-800">Phase 1 (Base Quota):</strong> Assigns patients until 1st years have 3, 2nd years have 2, and 3rd years have 1.</li>
-                <li><strong className="font-semibold text-gray-800">Phase 2 (Max Capacity):</strong> Assigns remaining patients up to the maximums (4, 3, and 2 respectively).</li>
-            </ul>
+             <ol className="list-decimal list-inside space-y-2">
+                <li><strong className="font-semibold text-gray-800">Biggest Patient First:</strong> Patients with the highest total procedure points are assigned first. This makes it easier to balance the remaining smaller workloads.</li>
+                <li><strong className="font-semibold text-gray-800">Closest to Target:</strong> Each patient is assigned to the available scholar who will be <strong className="text-teal-700">closest to their point target</strong> after receiving the patient.</li>
+                <li><strong className="font-semibold text-gray-800">Gender Priority:</strong> The system heavily prioritizes assigning patients to scholars of the same gender.</li>
+                <li><strong className="font-semibold text-gray-800">Patient Integrity:</strong> The system aims to assign all procedures for a single patient to one scholar to maintain clarity.</li>
+            </ol>
         </RuleItem>
     </div>
   );

@@ -1,5 +1,6 @@
 
 
+
 export enum Gender {
   MALE = 'M',
   FEMALE = 'F',
@@ -44,4 +45,5 @@ export interface Assignment {
   scholar: Scholar;
   procedures: AssignedProcedure[];
   totalPoints: number;
+  targetPoints: number;
 }
