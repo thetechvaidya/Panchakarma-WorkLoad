@@ -66,8 +66,6 @@ export const PROCEDURE_GRADES: Record<string, ProcedureGradeInfo> = {
   'tarpana': { grade: 3, points: 1, name: 'Tarpana' },
   'vesthana': { grade: 3, points: 1, name: 'Vesthana' },
   'avgah sweda': { grade: 3, points: 1, name: 'Avagaha Swedana' },
-  'pachan': { grade: 3, points: 1, name: 'Pachan / Deepan Pachan' },
-  'deepan pachan': { grade: 3, points: 1, name: 'Pachan / Deepan Pachan' },
 };
 
 // Sort keys by length descending to match longer phrases first
