@@ -42,6 +42,7 @@ export const PROCEDURE_GRADES: Record<string, ProcedureGradeInfo> = {
   'sarvanga ruksha sweda': { grade: 2, points: 2, name: 'Sarvanga Ruksha Sweda', code: 'SAR_RUKSHA' },
   'shiroabhyanga': { grade: 2, points: 2, name: 'Shiroabhyanga', code: 'SHIRO_AB' },
   'janu-basti': { grade: 2, points: 2, name: 'Janu Basti', code: 'JANU_BASTI' },
+  'jb': { grade: 2, points: 2, name: 'Janu Basti', code: 'JANU_BASTI' },
   'manya-basti': { grade: 2, points: 2, name: 'Manya Basti', code: 'MANYA_BASTI' },
   'kati basti': { grade: 2, points: 2, name: 'Kati Basti', code: 'KATI_BASTI' },
   'prishta basti': { grade: 2, points: 2, name: 'Prishta Basti', code: 'PRISHTA_BASTI' },
@@ -50,6 +51,7 @@ export const PROCEDURE_GRADES: Record<string, ProcedureGradeInfo> = {
   'pps': { grade: 2, points: 2, name: 'Sthanika Abhyanga & Potali Swedana', code: 'STH_AB_POT' },
   'jps': { grade: 2, points: 2, name: 'Sthanika Abhyanga & Potali Swedana', code: 'STH_AB_POT' },
   'ruksha sweda': { grade: 2, points: 2, name: 'Ruksha Swedana', code: 'RUKSHA_SW' },
+  'ruksha swed': { grade: 2, points: 2, name: 'Ruksha Swedana', code: 'RUKSHA_SW' },
   'upanhana': { grade: 2, points: 2, name: 'Upanaha', code: 'UPANAHA' },
   'sthanik dhara/parishek': { grade: 2, points: 2, name: 'Sthanika Dhara (Parisheka)', code: 'STH_DHARA' },
   'parisheka': { grade: 2, points: 2, name: 'Sthanika Dhara (Parisheka)', code: 'STH_DHARA' },
@@ -72,12 +74,14 @@ export const PROCEDURE_GRADES: Record<string, ProcedureGradeInfo> = {
   'abhyanga': { grade: 3, points: 1, name: 'Abhyanga', code: 'ABHYANGA' },
   'pichu': { grade: 3, points: 1, name: 'Pichu', code: 'PICHU' },
   'sarvang swedan': { grade: 3, points: 1, name: 'Sarvanga Swedana', code: 'SAR_SW' },
+  'sarvanga sweda': { grade: 3, points: 1, name: 'Sarvanga Swedana', code: 'SAR_SW' },
   'lepa': { grade: 3, points: 1, name: 'Lepa', code: 'LEPA' },
   'udar lepa': { grade: 3, points: 1, name: 'Udar Lepa', code: 'UDAR_LEPA' },
   'karnapurana': { grade: 3, points: 1, name: 'Karnapurana', code: 'KARNAPURANA' },
   'tarpana': { grade: 3, points: 1, name: 'Tarpana', code: 'TARPANA' },
   'vesthana': { grade: 3, points: 1, name: 'Vesthana', code: 'VESTHANA' },
   'avgah sweda': { grade: 3, points: 1, name: 'Avagaha Swedana', code: 'AVAGAHA' },
+  'nadi swedana': { grade: 3, points: 1, name: 'Nadi Swedana', code: 'NADI_SW' },
 };
 
 // Sort keys by length descending to match longer phrases first
@@ -90,32 +94,20 @@ export const YEAR_WEIGHTS: Record<number, number> = {
 };
 
 
-export const DEFAULT_INPUT_TEXT = `Procedures for 31/08/25
+export const DEFAULT_FEMALE_INPUT_TEXT = `1) Champa - 16th PPS+ 8th AB (Vatsmayantaka ghrita + Amritadi taila)+ 13th kati basti with Sahacharadi oil + 13th pichu with Sahacharadi oil over rt toe + *fasting and pps data
+4) Parveen Bano- 4th janu basti with murchhita Tila taila+ 3rd AB  
+5) Chandra devi - 11th PPS + 5th NB + 7th sarvanga sweda
+6) Chandrawati - 8th AB + ruksha swed with cotton over painfull joint
+7) Roshni- Abhyanga Swedana over Kati and udar pradesh + 5th AB
+8) Nishu - 3rd Sarvanga Abhyanga Swedana 
+9) Parveen- 10th Janu parisheka also on popliteal Fossa with balashwagandhadi taila + 6th AB 
+10) saira khatoon- 3rd NB  + 4th janu basti with murchhita Tila taila + nadi Swedana over Manya Kati pradesh
+11) Radha - 4th AB + 6th sarvanga swedan
+12) vimlesh -4th AB Ksheerabala taila+ 7th JB with murchit tila taila 
+13) shanti - 4th AB  + 6th sarvanga swedan
+14) Shashi- 4thJPS over cervical and b/l shoulder joint+ 5th Manya basti+ 5th matra basti with sahachardi taila`;
 
-♀Females (12) 
-
-1) Babita-  7th abhyanga over lower back , cervical region and b/l lower limb (ant. And post. More on cervical) f/b pps  + 5th AB (sahacharadi taila) Dr Kamini + Physiotherapy Consultation
-2)  nazreen- 10th parisheka with dashamula kwath + 5th NB with Dashmula Panchtikta  Dr Ayushi
-3) fiza - attendant
-4) Champa - 9th  pps + 5th AB (Amritadi taila+ Vatsmayantaka ghrita))+ 6th  kati basti with Sahacharadi oil + 6th pichu with Sahacharadi oil over rt toe + Consultation with Saurabh Sir  Dr Ayushi
-5) Pooja - attendant 
-6) Rajkumari - 4th NB (yashtyadi) + abhyanga swedan on kati and udar Pradesh Dr kamini
-7) Memun nisha - 2nd Sarvanga Abhyanga Swedana Dr Anjali
-8) Chandra devi - 3rd PPS + 2nd AB Dashmula taila.Dr Anjali
-9) Chandrawati - 7th sarvang swedan (do bp before sarvang swedan)  + 3rd NB  Dr Kamini
-10) Roshni- Abhyanga Swedana over Kati and udar pradesh+ 2nd AB with triphaladi taila Dr Anjali
-11) Nishu - pachan with chitrakadi vati
-12)Parveen- 2nd Janu parisheka with balaashwagandhadi taila + 1st NB  Dashmula Panchtikta ksheer basti (yoga basti) * Dr Kamini*
-
-♂Male (6)
-
-1)Jagprasad- 4th day snehapan with varunadi ghrita  + 6th SSPS Dr Akash do ssps late , after pachan of sneha ( stop ssps from Monday)
-2) Sandeep  - 13th Manya basti ( Murchitta tila taila) + 7th AB balaguduchyadi taila Dr Satrughna  
-3) Moolchand -  10th  kati basti ( Mahanarayan taila) + 9th PPS (morning+Eve)2 times pps+ 4th abhyanga f/b dashmula parishek over kati Pradesh and b/l lower limb+ 1st Ruksha sweda over abdomen Dr Aakash 
-4) Swami -3rd Sarvanga swedana + 3rd AB Amritadi taila  (only after P/A)  Dr Satrughna
-5) Ashish - Sthanika Abhyanga Swedana+ Attendant Dr Satrughna
-6) Narendra -2nd Udar lepa, 1st avgah sweda + 1st avgaha sweda Dr Aakash
-
-OPD BASIS
-Not Any
-`;
+export const DEFAULT_MALE_INPUT_TEXT = `2) omprakash(M)- 4th AB +8th kati basti with murchit tila taila 
+3) Swami(M) -10th Sarvanga swedana + 7th AB with valiya amrutadi taila + 14th PPS over kati and hip joint
+4) Narendra(M) -9th Udar lepa + 8th avgah sweda
+5) Virender(M) -3rd AB + kati and udar pradesh abhyanga Swedan`;

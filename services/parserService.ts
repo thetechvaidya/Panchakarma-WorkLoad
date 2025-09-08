@@ -2,25 +2,17 @@ import type { Patient, Procedure } from '../types';
 import { Gender } from '../types';
 import { PROCEDURE_GRADES, SORTED_PROCEDURE_KEYS } from '../constants';
 
-export const parsePatientProcedures = (text: string): Patient[] => {
+export const parsePatientProcedures = (text: string, gender: Gender): Patient[] => {
   const patients: Patient[] = [];
   const lines = text.split('\n');
-  
-  let currentGender: Gender | null = null;
 
   for (const line of lines) {
     const trimmedLine = line.trim();
-    if (trimmedLine.toLowerCase().startsWith('♀females')) {
-      currentGender = Gender.FEMALE;
-      continue;
-    }
-    if (trimmedLine.toLowerCase().startsWith('♂male')) {
-      currentGender = Gender.MALE;
-      continue;
-    }
-    if (!currentGender) continue;
+    if (!trimmedLine) continue;
 
-    const match = trimmedLine.match(/^(\d+)\)\s*([a-zA-Z\s]+)\s*-\s*(.*)/);
+    // Improved regex to capture names that may contain non-alphabetic characters like (M)
+    // It expects lines to start with a number, like "1) Name - procedures..."
+    const match = trimmedLine.match(/^(\d+)\)\s*([^-]+?)\s*-\s*(.*)/);
     if (!match) continue;
     
     const [, , name, proceduresText] = match;
@@ -32,7 +24,7 @@ export const parsePatientProcedures = (text: string): Patient[] => {
         patients.push({
             id: patientId,
             name: patientName,
-            gender: currentGender,
+            gender: gender,
             procedures: [],
             isAttendant: true
         });
@@ -68,7 +60,7 @@ export const parsePatientProcedures = (text: string): Patient[] => {
     patients.push({
       id: patientId,
       name: patientName,
-      gender: currentGender,
+      gender: gender,
       procedures: uniqueProcedures,
       isAttendant: false,
     });

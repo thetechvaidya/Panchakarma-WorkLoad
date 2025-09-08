@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import type { Scholar, Assignment } from './types';
-import { INITIAL_SCHOLARS, DEFAULT_INPUT_TEXT } from './constants';
+import { Gender } from './types';
+import { INITIAL_SCHOLARS, DEFAULT_FEMALE_INPUT_TEXT, DEFAULT_MALE_INPUT_TEXT } from './constants';
 import { parsePatientProcedures, parsePreviousAssignments } from './services/parserService';
 import { distributeWorkload } from './services/distributionService';
 import { generateExportText } from './services/exportService';
@@ -13,7 +14,8 @@ import RulesDisplay from './components/RulesDisplay';
 import ProcedureGradeTable from './components/ProcedureGradeTable';
 
 const App: React.FC = () => {
-  const [inputText, setInputText] = useState<string>(DEFAULT_INPUT_TEXT);
+  const [femaleInputText, setFemaleInputText] = useState<string>(DEFAULT_FEMALE_INPUT_TEXT);
+  const [maleInputText, setMaleInputText] = useState<string>(DEFAULT_MALE_INPUT_TEXT);
   const [previousDayInputText, setPreviousDayInputText] = useState<string>('');
   const [scholars, setScholars] = useState<Scholar[]>(INITIAL_SCHOLARS);
   const [assignments, setAssignments] = useState<Map<string, Assignment>>(new Map());
@@ -21,7 +23,6 @@ const App: React.FC = () => {
   const [showResults, setShowResults] = useState<boolean>(false);
   const [isExportModalOpen, setExportModalOpen] = useState<boolean>(false);
   const [exportText, setExportText] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'today' | 'previous'>('today');
 
 
   const handleDistribute = useCallback(() => {
@@ -31,9 +32,12 @@ const App: React.FC = () => {
     // Simulate processing time for better UX
     setTimeout(() => {
         try {
-            const patients = parsePatientProcedures(inputText);
+            const femalePatients = parsePatientProcedures(femaleInputText, Gender.FEMALE);
+            const malePatients = parsePatientProcedures(maleInputText, Gender.MALE);
+            const allPatients = [...femalePatients, ...malePatients];
+
             const previousAssignments = parsePreviousAssignments(previousDayInputText);
-            const newAssignments = distributeWorkload(patients, scholars, previousAssignments);
+            const newAssignments = distributeWorkload(allPatients, scholars, previousAssignments);
             setAssignments(newAssignments);
         } catch(error) {
             console.error("Error during workload distribution:", error);
@@ -42,7 +46,7 @@ const App: React.FC = () => {
             setIsLoading(false);
         }
     }, 500);
-  }, [inputText, scholars, previousDayInputText]);
+  }, [femaleInputText, maleInputText, scholars, previousDayInputText]);
   
   const handleExport = () => {
     const text = generateExportText(assignments);
@@ -63,61 +67,44 @@ const App: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 flex flex-col gap-6">
             <div className="bg-white rounded-xl shadow-md border border-gray-200">
-               <div className="border-b border-gray-200">
-                <nav className="-mb-px flex space-x-1 px-4" aria-label="Tabs">
-                  <button
-                    onClick={() => setActiveTab('today')}
-                    className={`${
-                      activeTab === 'today'
-                        ? 'border-teal-500 text-teal-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    } whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-colors`}
-                  >
-                    Today's Procedures
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('previous')}
-                    className={`${
-                      activeTab === 'previous'
-                        ? 'border-teal-500 text-teal-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    } whitespace-nowrap py-4 px-2 border-b-2 font-medium text-sm transition-colors`}
-                    aria-current={activeTab === 'previous' ? 'page' : undefined}
-                  >
-                    Continuity List
-                    <span className="ml-2 bg-amber-100 text-amber-800 text-xs font-medium px-2 py-0.5 rounded-full">Optional</span>
-                  </button>
-                </nav>
-              </div>
-              <div className="p-6">
-                {activeTab === 'today' ? (
-                  <div>
-                    <label htmlFor="todayInput" className="block text-sm font-bold text-gray-700 mb-2">
-                        Today's Procedures to be Assigned
+              <div className="p-6 space-y-6">
+                 <div>
+                    <label htmlFor="femaleInput" className="block text-sm font-bold text-gray-700 mb-2">
+                        <i className="fas fa-venus text-pink-500 mr-2"></i>Female Patients
                     </label>
                     <textarea
-                        id="todayInput"
-                        value={inputText}
-                        onChange={(e) => setInputText(e.target.value)}
-                        className="w-full h-96 p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow duration-200 text-sm font-mono"
-                        placeholder="Paste the procedure list here..."
+                        id="femaleInput"
+                        value={femaleInputText}
+                        onChange={(e) => setFemaleInputText(e.target.value)}
+                        className="w-full h-64 p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow duration-200 text-sm font-mono"
+                        placeholder="Paste the list of female patients and their procedures..."
                     />
                   </div>
-                ) : (
+                   <div>
+                    <label htmlFor="maleInput" className="block text-sm font-bold text-gray-700 mb-2">
+                        <i className="fas fa-mars text-blue-500 mr-2"></i>Male Patients
+                    </label>
+                    <textarea
+                        id="maleInput"
+                        value={maleInputText}
+                        onChange={(e) => setMaleInputText(e.target.value)}
+                        className="w-full h-48 p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow duration-200 text-sm font-mono"
+                        placeholder="Paste the list of male patients and their procedures..."
+                    />
+                  </div>
                   <div>
                     <label htmlFor="previousDayInput" className="block text-sm font-bold text-gray-700 mb-2">
-                        Previous Day's Final List
+                        <i className="fas fa-user-clock text-amber-600 mr-2"></i>Continuity List <span className="text-xs font-normal text-gray-500">(Optional)</span>
                     </label>
-                    <p className="text-sm text-gray-500 mb-3">Paste yesterday's exported list here to maintain patient-scholar continuity.</p>
+                    <p className="text-xs text-gray-500 mb-2">Paste yesterday's exported list here to maintain patient-scholar continuity.</p>
                     <textarea
                         id="previousDayInput"
                         value={previousDayInputText}
                         onChange={(e) => setPreviousDayInputText(e.target.value)}
-                        className="w-full h-96 p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow duration-200 text-sm font-mono"
+                        className="w-full h-32 p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow duration-200 text-sm font-mono"
                         placeholder="Paste the final distributed list from the previous day here..."
                     />
                   </div>
-                )}
               </div>
               <div className="p-4 bg-gray-50/75 border-t border-gray-200">
                 <button

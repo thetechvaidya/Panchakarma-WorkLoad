@@ -23,7 +23,7 @@ const RulesDisplay: React.FC = () => {
 
         <RuleItem title="Rule 1: Patient Continuity (Highest Priority)" icon="fa-user-clock">
             <p>
-                If you provide a "Continuity List", the system's first action is to assign returning patients to their previously assigned scholar. This is a clinical priority.
+                If you provide a "Continuity List", the system's first action is to assign returning patients to their previously assigned scholar, provided the gender match is correct.
             </p>
         </RuleItem>
 
@@ -47,13 +47,13 @@ const RulesDisplay: React.FC = () => {
 
         <RuleItem title="Rule 3: Equity-First Assignment (New Core Logic)" icon="fa-balance-scale-right">
             <p>
-               All remaining patients are assigned using an iterative process that constantly prioritizes fairness:
+               All remaining patients are assigned using an iterative process that constantly prioritizes fairness within strict gender boundaries:
             </p>
              <ol className="list-decimal list-inside space-y-2">
-                <li><strong className="font-semibold text-gray-800">Find the Neediest Scholar:</strong> In each step, the system identifies the scholar who is currently <strong className="text-teal-700">furthest below their point target</strong>.</li>
-                <li><strong className="font-semibold text-gray-800">Find the Best Patient Fit:</strong> It then analyzes all unassigned patients to find the single best one for that specific scholar—one that gets them closer to their target.</li>
-                <li><strong className="font-semibold text-gray-800">Flexible Gender Priority:</strong> The system prefers matching patient and scholar gender, but <strong className="text-orange-600">it will allow a mismatch</strong> if necessary to create a more balanced and fair point distribution.</li>
-                <li><strong className="font-semibold text-gray-800">Repeat Until Done:</strong> This process repeats—find the neediest scholar, give them the best-fitting patient—until all procedures are assigned. This ensures the workload is built up evenly for everyone.</li>
+                <li><strong className="font-semibold text-gray-800">Strict Gender Matching:</strong> To ensure patient comfort and safety, the system now enforces a strict rule: Female patients are <strong className="text-teal-700">only</strong> assigned to female scholars, and male patients are <strong className="text-teal-700">only</strong> assigned to male scholars. There are no exceptions.</li>
+                <li><strong className="font-semibold text-gray-800">Find the Neediest Scholar:</strong> Within each gender group, the system identifies the scholar who is currently <strong className="text-teal-700">furthest below their point target</strong>.</li>
+                <li><strong className="font-semibold text-gray-800">Find the Best Patient Fit:</strong> It then analyzes all unassigned patients of the same gender to find the single best one for that scholar.</li>
+                <li><strong className="font-semibold text-gray-800">Repeat Until Done:</strong> This process repeats for each gender group until all procedures are assigned, ensuring the workload is built up evenly and safely.</li>
             </ol>
         </RuleItem>
     </div>
