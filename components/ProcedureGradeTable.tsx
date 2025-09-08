@@ -43,7 +43,7 @@ const ProcedureGradeTable: React.FC = () => {
               <ul className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-sm text-gray-600 list-disc list-inside">
                 {procedures.map(proc => (
                   <li key={proc.name} className="truncate" title={proc.name}>
-                    <span className="ml-1">{proc.name}</span>
+                    <span className="ml-1">{proc.name} <span className="font-mono text-xs text-gray-400">({proc.code})</span></span>
                   </li>
                 ))}
               </ul>

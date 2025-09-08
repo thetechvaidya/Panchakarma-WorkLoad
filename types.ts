@@ -1,6 +1,8 @@
 
 
 
+
+
 export enum Gender {
   MALE = 'M',
   FEMALE = 'F',
@@ -18,6 +20,7 @@ export interface ProcedureGradeInfo {
   grade: 1 | 2 | 3;
   points: number;
   name: string;
+  code: string;
 }
 
 export interface Procedure {
@@ -25,6 +28,7 @@ export interface Procedure {
   name: string;
   grade: 1 | 2 | 3;
   points: number;
+  code: string;
 }
 
 export interface Patient {

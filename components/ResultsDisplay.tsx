@@ -21,7 +21,9 @@ const ProcedureItem: React.FC<{ item: AssignedProcedure }> = ({ item }) => (
           <i className={`w-4 text-center fas ${item.patientGender === Gender.MALE ? 'fa-mars text-blue-500' : 'fa-venus text-pink-500'} mr-2`}></i>
           {item.patientName}
         </div>
-        <p className="text-sm text-gray-500 ml-6">{item.procedure.name}</p>
+        <p className="text-sm text-gray-500 ml-6">
+            {item.procedure.name} <span className="font-mono text-xs text-gray-400">({item.procedure.code})</span>
+        </p>
       </div>
       <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${getPointBadgeColor(item.procedure.points)}`}>
         {item.procedure.points} pts
