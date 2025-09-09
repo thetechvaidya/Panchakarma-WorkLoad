@@ -25,7 +25,7 @@ export interface ProcedureGradeInfo {
 }
 
 export interface Procedure {
-  id: string;
+  id:string;
   name: string;
   grade: 1 | 2 | 3;
   points: number;
@@ -56,6 +56,6 @@ export interface Assignment {
 export interface HistoricalAssignmentRecord {
   date: string; // ISO string 'YYYY-MM-DD'
   assignments: Assignment[];
-  // FIX: Add optional `patients` property to align the type with the Firestore data model.
   patients?: Patient[];
+  scholars?: Scholar[];
 }

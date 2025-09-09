@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import type { Scholar, Patient, Assignment } from './types';
 import { INITIAL_SCHOLARS } from './constants';
 import { distributeWorkload } from './services/distributionService';
 import { generateExportText } from './services/exportService';
-import { getLatestAssignmentsForContinuity, saveDailyAssignments } from './services/historyService';
+import { getLatestAssignmentsForContinuity, saveDailyData, getDailyData } from './services/historyService';
 
 import Header from './components/Header';
 import ScholarSetup from './components/ScholarSetup';
@@ -14,53 +14,121 @@ import RulesDisplay from './components/RulesDisplay';
 import ProcedureGradeTable from './components/ProcedureGradeTable';
 import PatientInput from './components/PatientInput';
 import WeeklyAnalysisModal from './components/WeeklyAnalysisModal';
+import DateNavigator from './components/DateNavigator';
+
+const getISODateString = (date: Date): string => date.toISOString().split('T')[0];
+
+const isSameDay = (d1: Date, d2: Date) => {
+  return d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate();
+};
+
 
 const App: React.FC = () => {
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [patients, setPatients] = useState<Patient[]>([]);
   const [scholars, setScholars] = useState<Scholar[]>(INITIAL_SCHOLARS);
   const [assignments, setAssignments] = useState<Map<string, Assignment>>(new Map());
+  
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isDistributing, setIsDistributing] = useState<boolean>(false);
   const [showResults, setShowResults] = useState<boolean>(false);
   const [isExportModalOpen, setExportModalOpen] = useState<boolean>(false);
   const [isAnalysisModalOpen, setAnalysisModalOpen] = useState<boolean>(false);
   const [exportText, setExportText] = useState<string>('');
+
+  const isToday = useMemo(() => isSameDay(selectedDate, new Date()), [selectedDate]);
   
-  const handleAddPatient = useCallback((patientData: Omit<Patient, 'id' | 'isAttendant'>) => {
+  useEffect(() => {
+    const loadDataForDate = async () => {
+        setIsLoading(true);
+        setShowResults(false);
+        try {
+            const data = await getDailyData(selectedDate);
+            if (data) {
+                setPatients(data.patients || []);
+                setScholars(data.scholars || INITIAL_SCHOLARS);
+                const assignmentMap = new Map<string, Assignment>();
+                if (data.assignments && data.assignments.length > 0) {
+                    data.assignments.forEach(a => assignmentMap.set(a.scholar.id, a));
+                    setShowResults(true);
+                }
+                setAssignments(assignmentMap);
+            } else {
+                // Reset for a new day or a day with no data
+                setPatients([]);
+                setScholars(INITIAL_SCHOLARS);
+                setAssignments(new Map());
+            }
+        } catch (error) {
+            console.error("Error loading data for date:", selectedDate, error);
+            alert("Could not load data. Please check console for details.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    loadDataForDate();
+  }, [selectedDate]);
+
+  const handleAddPatient = useCallback(async (patientData: Omit<Patient, 'id' | 'isAttendant'>) => {
+      if (!isToday) return;
       const newPatient: Patient = {
         ...patientData,
         id: `patient-${patientData.name.trim().replace(/\s/g, '')}-${Date.now()}`,
         isAttendant: false,
       }
-      setPatients(prev => [...prev, newPatient]);
-  }, []);
+      const updatedPatients = [...patients, newPatient];
+      setPatients(updatedPatients);
+      try {
+        await saveDailyData({ date: getISODateString(selectedDate), patients: updatedPatients, scholars });
+      } catch (error) {
+        console.error("Failed to save new patient:", error);
+        // Optionally revert state or show error
+      }
+  }, [patients, scholars, selectedDate, isToday]);
 
-  const handleDeletePatient = useCallback((patientId: string) => {
-      setPatients(prev => prev.filter(p => p.id !== patientId));
-  }, []);
+  const handleDeletePatient = useCallback(async (patientId: string) => {
+      if (!isToday) return;
+      const updatedPatients = patients.filter(p => p.id !== patientId);
+      setPatients(updatedPatients);
+      try {
+        await saveDailyData({ date: getISODateString(selectedDate), patients: updatedPatients, scholars });
+      } catch (error) {
+        console.error("Failed to save after deleting patient:", error);
+      }
+  }, [patients, scholars, selectedDate, isToday]);
   
-  const handleToggleScholarStatus = useCallback((scholarId: string) => {
-      setScholars(prev => 
-        prev.map(scholar => 
+  const handleToggleScholarStatus = useCallback(async (scholarId: string) => {
+      if (!isToday) return;
+      const updatedScholars = scholars.map(scholar => 
           scholar.id === scholarId 
             ? { ...scholar, isPosted: !scholar.isPosted } 
             : scholar
-        )
       );
-  }, []);
+      setScholars(updatedScholars);
+      try {
+        await saveDailyData({ date: getISODateString(selectedDate), scholars: updatedScholars, patients });
+      } catch (error) {
+        console.error("Failed to save scholar status:", error);
+      }
+  }, [scholars, patients, selectedDate, isToday]);
 
   const handleDistribute = useCallback(async () => {
-    if (patients.length === 0) {
-        alert("Please add at least one patient before distributing.");
+    if (patients.length === 0 || !isToday) {
+        alert("Please add at least one patient on the current day before distributing.");
         return;
     }
     setIsDistributing(true);
-    setShowResults(true);
     
     try {
         const previousAssignments = await getLatestAssignmentsForContinuity();
         const newAssignments = distributeWorkload(patients, scholars, previousAssignments);
         setAssignments(newAssignments);
-        await saveDailyAssignments(newAssignments, patients);
+
+        const assignmentsArray = Array.from(newAssignments.values());
+        await saveDailyData({ date: getISODateString(selectedDate), assignments: assignmentsArray, patients, scholars });
+        setShowResults(true);
         
     } catch(error) {
         console.error("Error during workload distribution:", error);
@@ -68,7 +136,7 @@ const App: React.FC = () => {
     } finally {
         setIsDistributing(false);
     }
-  }, [patients, scholars]);
+  }, [patients, scholars, selectedDate, isToday]);
   
   const handleExport = () => {
     const text = generateExportText(assignments);
@@ -80,15 +148,21 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       <main className="container mx-auto p-4 md:p-6 flex-grow">
+        <DateNavigator selectedDate={selectedDate} onDateChange={setSelectedDate} isLoading={isLoading} />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 flex flex-col gap-6">
-            <PatientInput patients={patients} onAddPatient={handleAddPatient} onDeletePatient={handleDeletePatient} />
+            <PatientInput 
+              patients={patients} 
+              onAddPatient={handleAddPatient} 
+              onDeletePatient={handleDeletePatient}
+              disabled={!isToday || isLoading} 
+            />
             
             <div className="bg-white rounded-xl shadow-md border border-gray-200">
               <div className="p-4 bg-gray-50/75 border-t border-gray-200 space-y-3">
                 <button
                     onClick={handleDistribute}
-                    disabled={isDistributing || patients.length === 0}
+                    disabled={isDistributing || patients.length === 0 || !isToday || isLoading}
                     className="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center space-x-2 shadow hover:shadow-lg"
                 >
                     {isDistributing ? (
@@ -113,30 +187,36 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <ScholarSetup scholars={scholars} onToggleScholarStatus={(id) => handleToggleScholarStatus(id)} />
+            <ScholarSetup scholars={scholars} onToggleScholarStatus={handleToggleScholarStatus} disabled={!isToday || isLoading} />
             <ProcedureGradeTable />
             <RulesDisplay />
           </div>
           <div className="lg:col-span-2">
-            {showResults ? (
-                isDistributing ? (
-                    <div className="flex items-center justify-center h-full bg-white rounded-xl shadow-md p-10">
-                        <div className="text-center">
-                            <i className="fas fa-spinner fa-spin text-4xl text-teal-600"></i>
-                            <p className="mt-4 text-lg text-gray-600">Calculating optimal distribution...</p>
+            {isDistributing || isLoading ? (
+                <div className="flex items-center justify-center h-full bg-white rounded-xl shadow-md p-10">
+                    <div className="text-center">
+                        <i className="fas fa-spinner fa-spin text-4xl text-teal-600"></i>
+                        <p className="mt-4 text-lg text-gray-600">
+                            {isLoading ? "Loading data..." : "Calculating optimal distribution..."}
+                        </p>
+                    </div>
+                </div>
+            ) : showResults ? (
+                <div className="flex flex-col gap-6">
+                    {!isToday && (
+                        <div className="bg-amber-100 border-l-4 border-amber-500 text-amber-700 p-4 rounded-lg shadow" role="alert">
+                            <p className="font-bold">Read-Only Mode</p>
+                            <p>You are viewing a historical record. No changes can be made.</p>
                         </div>
-                    </div>
-                ) : (
-                    <div className="flex flex-col gap-6">
-                      <WorkloadSummary assignments={assignments} />
-                      <ResultsDisplay assignments={assignments} onExport={handleExport} />
-                    </div>
-                )
+                    )}
+                    <WorkloadSummary assignments={assignments} />
+                    <ResultsDisplay assignments={assignments} onExport={handleExport} />
+                </div>
             ) : (
                  <div className="flex items-center justify-center h-full bg-white rounded-xl shadow-md p-10">
                     <div className="text-center">
                         <i className="fas fa-info-circle text-4xl text-gray-400"></i>
-                        <p className="mt-4 text-lg text-gray-600">Add patients and click "Distribute Workload" to see the assignments.</p>
+                        <p className="mt-4 text-lg text-gray-600">{isToday ? "Add patients and click 'Distribute Workload' to see assignments." : "No workload was recorded for this day."}</p>
                     </div>
                 </div>
             )}

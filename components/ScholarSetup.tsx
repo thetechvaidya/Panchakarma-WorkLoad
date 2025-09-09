@@ -4,10 +4,11 @@ import { Gender } from '../types';
 
 interface ScholarSetupProps {
   scholars: Scholar[];
-  onToggleScholarStatus: (id: string, currentStatus: boolean) => void;
+  onToggleScholarStatus: (id: string) => void;
+  disabled: boolean;
 }
 
-const ScholarSetup: React.FC<ScholarSetupProps> = ({ scholars, onToggleScholarStatus }) => {
+const ScholarSetup: React.FC<ScholarSetupProps> = ({ scholars, onToggleScholarStatus, disabled }) => {
 
   const scholarsByYear = scholars.reduce((acc, scholar) => {
     (acc[scholar.year] = acc[scholar.year] || []).push(scholar);
@@ -33,10 +34,11 @@ const ScholarSetup: React.FC<ScholarSetupProps> = ({ scholars, onToggleScholarSt
                     type="checkbox"
                     id={`scholar-${scholar.id}`}
                     checked={scholar.isPosted}
-                    onChange={() => onToggleScholarStatus(scholar.id, scholar.isPosted)}
-                    className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                    onChange={() => onToggleScholarStatus(scholar.id)}
+                    className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 disabled:cursor-not-allowed"
+                    disabled={disabled}
                   />
-                  <label htmlFor={`scholar-${scholar.id}`} className="ml-2 block text-sm text-gray-700 truncate">
+                  <label htmlFor={`scholar-${scholar.id}`} className={`ml-2 block text-sm truncate ${disabled ? 'text-gray-500' : 'text-gray-700'}`}>
                     {scholar.name}
                     <span className={`ml-1 text-xs ${scholar.gender === Gender.MALE ? 'text-blue-500' : 'text-pink-500'}`}>
                       ({scholar.gender})

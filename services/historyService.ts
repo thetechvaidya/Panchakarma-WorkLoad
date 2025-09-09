@@ -1,6 +1,6 @@
-import type { HistoricalAssignmentRecord, Assignment, Patient } from '../types';
+import type { HistoricalAssignmentRecord, Assignment, Patient, Scholar } from '../types';
 import { db } from '../firebaseConfig';
-import { collection, query, where, getDocs, orderBy, limit, doc, setDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit, doc, setDoc, getDoc } from 'firebase/firestore';
 
 const HISTORY_DAYS = 7; 
 
@@ -9,9 +9,8 @@ const getISODateString = (date: Date): string => {
   return date.toISOString().split('T')[0];
 };
 
-export const saveDailyAssignments = async (
-  assignments: Map<string, Assignment>,
-  patients: Patient[]
+export const saveDailyData = async (
+  record: Partial<HistoricalAssignmentRecord> & { date: string }
 ): Promise<void> => {
   if (!db) {
     console.warn("Firebase not configured. Data not saved.");
@@ -19,24 +18,33 @@ export const saveDailyAssignments = async (
   }
 
   try {
-    const todayStr = getISODateString(new Date());
-    const docRef = doc(db, 'daily_data', todayStr);
-
-    const record: HistoricalAssignmentRecord = {
-      date: todayStr,
-      assignments: Array.from(assignments.values()),
-      patients: patients,
-    };
-
-    // Use setDoc with merge to create or update the document for today
+    const docRef = doc(db, 'daily_data', record.date);
     await setDoc(docRef, record, { merge: true });
-    console.log(`Successfully saved assignment data for ${todayStr}.`);
+    console.log(`Successfully saved data for ${record.date}.`);
   } catch (error) {
-    console.error("Failed to save daily assignments to Firestore:", error);
-    // Propagate error to be handled by the caller
+    console.error("Failed to save daily data to Firestore:", error);
     throw error;
   }
 };
+
+
+export const getDailyData = async (date: Date): Promise<HistoricalAssignmentRecord | null> => {
+    if (!db) return null;
+    try {
+        const dateStr = getISODateString(date);
+        const docRef = doc(db, 'daily_data', dateStr);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            return docSnap.data() as HistoricalAssignmentRecord;
+        } else {
+            return null; // No data for this day
+        }
+    } catch (error) {
+        console.error("Failed to retrieve daily data:", error);
+        return null;
+    }
+}
 
 export const getWeeklyHistory = async (): Promise<HistoricalAssignmentRecord[]> => {
     if (!db) return [];
