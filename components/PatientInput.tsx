@@ -73,16 +73,19 @@ const PatientInput: React.FC<PatientInputProps> = ({ patients, onAddPatient, onD
                 <fieldset disabled={disabled} className="space-y-4">
                     <div>
                         <label htmlFor="patientName" className="block text-sm font-bold text-gray-700 mb-2">Patient Name</label>
-                        <input type="text" id="patientName" value={name} onChange={e => setName(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 transition-all" required placeholder="Enter patient name" />
+                        <input type="text" id="patientName" value={name} onChange={e => setName(e.target.value)} className="w-full p-2 sm:p-3 text-sm sm:text-base border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 transition-all" required placeholder="Enter patient name" />
                     </div>
                     <div>
                         <span className="block text-sm font-bold text-gray-700 mb-3">Gender</span>
-                        <div className="flex gap-6">
-                            <label className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors">
+                        <div className="flex gap-3 sm:gap-6">
+                            <label className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors flex-1 sm:flex-initial">
                                 <input type="radio" name="gender" value={Gender.FEMALE} checked={gender === Gender.FEMALE} onChange={() => setGender(Gender.FEMALE)} className="h-4 w-4 text-teal-600 focus:ring-teal-500" /> 
-                                <span className="ml-3 text-sm font-medium text-gray-700">Female</span>
+                                <span className="ml-2 sm:ml-3 text-sm font-medium text-gray-700">Female</span>
                             </label>
-                            <label className="flex items-center"><input type="radio" name="gender" value={Gender.MALE} checked={gender === Gender.MALE} onChange={() => setGender(Gender.MALE)} className="h-4 w-4 text-teal-600 focus:ring-teal-500" /> <span className="ml-2 text-sm text-gray-700">Male</span></label>
+                            <label className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors flex-1 sm:flex-initial">
+                                <input type="radio" name="gender" value={Gender.MALE} checked={gender === Gender.MALE} onChange={() => setGender(Gender.MALE)} className="h-4 w-4 text-teal-600 focus:ring-teal-500" /> 
+                                <span className="ml-2 text-sm font-medium text-gray-700">Male</span>
+                            </label>
                         </div>
                     </div>
                     
@@ -96,12 +99,12 @@ const PatientInput: React.FC<PatientInputProps> = ({ patients, onAddPatient, onD
                                 placeholder="Search procedures..."
                                 value={procedureFilter}
                                 onChange={e => setProcedureFilter(e.target.value)}
-                                className="w-full p-2 pl-9 border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100"
+                                className="w-full p-2 pl-8 sm:pl-9 text-sm sm:text-base border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100"
                                 aria-label="Filter procedures"
                             />
                             <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
                         </div>
-                        <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-2 space-y-1 bg-gray-50/75 shadow-inner">
+                        <div className="max-h-48 sm:max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-2 space-y-1 bg-gray-50/75 shadow-inner">
                             {filteredProcedures.length > 0 ? (
                             filteredProcedures.map(procInfo => (
                                 <label key={procInfo.code} className="flex items-center p-2 rounded-md hover:bg-teal-50 transition-colors cursor-pointer">
@@ -123,14 +126,16 @@ const PatientInput: React.FC<PatientInputProps> = ({ patients, onAddPatient, onD
                         </div>
                     </div>
                 </fieldset>
-                <button type="submit" className="w-full bg-teal-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center" disabled={!name.trim() || currentProcedures.length === 0 || disabled}>
-                    <i className="fas fa-plus-circle mr-2"></i>Add Patient to List
+                <button type="submit" className="w-full bg-teal-600 text-white font-bold py-2 sm:py-2.5 px-3 sm:px-4 rounded-lg hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center text-sm sm:text-base" disabled={!name.trim() || currentProcedures.length === 0 || disabled}>
+                    <i className="fas fa-plus-circle mr-2"></i>
+                    <span className="hidden sm:inline">Add Patient to List</span>
+                    <span className="sm:hidden">Add Patient</span>
                 </button>
             </form>
         </div>
         
-        <div className="border-t border-gray-200 bg-gray-50/50 p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Today's Patient List ({patients.length})</h3>
+        <div className="border-t border-gray-200 bg-gray-50/50 p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-3 sm:mb-4">Today's Patient List ({patients.length})</h3>
             {patients.length > 0 ? (
                 <ul className="space-y-3 max-h-[26rem] overflow-y-auto pr-2 -mr-2">
                     {patients.map(patient => (

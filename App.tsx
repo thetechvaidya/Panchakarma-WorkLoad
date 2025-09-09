@@ -270,8 +270,8 @@ const App: React.FC = () => {
           </div>
         )}
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 flex flex-col gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="lg:col-span-1 flex flex-col gap-4 sm:gap-6">
             <PatientInput 
               patients={patients} 
               onAddPatient={handleAddPatient} 
@@ -280,13 +280,13 @@ const App: React.FC = () => {
             />
             
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-              <div className="bg-gradient-to-r from-teal-50 to-blue-50 px-4 py-3 border-b border-gray-200">
-                <h3 className="font-bold text-gray-800 flex items-center">
+              <div className="bg-gradient-to-r from-teal-50 to-blue-50 px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-200">
+                <h3 className="text-sm sm:text-base font-bold text-gray-800 flex items-center">
                   <i className="fas fa-robot text-teal-600 mr-2"></i>
                   Intelligent Distribution
                 </h3>
               </div>
-              <div className="p-4 space-y-3">
+              <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
                 <button
                     onClick={handleDistribute}
                     disabled={isDistributing || patients.length === 0 || !isToday || isLoading}
