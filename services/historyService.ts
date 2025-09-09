@@ -19,11 +19,16 @@ export const saveDailyData = async (
 
   try {
     const docRef = doc(db, 'daily_data', record.date);
-    await setDoc(docRef, record, { merge: true });
+    // Add timeout to prevent hanging
+    await Promise.race([
+      setDoc(docRef, record, { merge: true }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Save timeout')), 8000))
+    ]);
     console.log(`Successfully saved data for ${record.date}.`);
   } catch (error) {
     console.error("Failed to save daily data to Firestore:", error);
-    throw error;
+    // Don't throw error to prevent UI blocking
+    console.warn("Continuing in offline mode...");
   }
 };
 
@@ -33,15 +38,21 @@ export const getDailyData = async (date: Date): Promise<HistoricalAssignmentReco
     try {
         const dateStr = getISODateString(date);
         const docRef = doc(db, 'daily_data', dateStr);
-        const docSnap = await getDoc(docRef);
+        
+        // Add timeout to prevent hanging
+        const docSnap = await Promise.race([
+            getDoc(docRef),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Load timeout')), 5000))
+        ]) as any;
 
-        if (docSnap.exists()) {
+        if (docSnap && docSnap.exists()) {
             return docSnap.data() as HistoricalAssignmentRecord;
         } else {
             return null; // No data for this day
         }
     } catch (error) {
         console.error("Failed to retrieve daily data:", error);
+        console.warn("Returning null - continuing in offline mode");
         return null;
     }
 }

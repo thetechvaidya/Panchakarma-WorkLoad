@@ -61,13 +61,14 @@ const PatientInput: React.FC<PatientInputProps> = ({ patients, onAddPatient, onD
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-        <div className="bg-gradient-to-r from-teal-50 to-blue-50 px-6 py-4 border-b border-gray-200">
-            <h3 className="text-xl font-bold text-gray-800 flex items-center">
-                <i className="fas fa-user-plus text-teal-600 mr-2"></i>
-                Add Patient & Procedures
+        <div className="bg-gradient-to-r from-teal-50 to-blue-50 px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center">
+                <i className="fas fa-user-plus text-teal-600 mr-2 text-sm sm:text-base"></i>
+                <span className="hidden sm:inline">Add Patient & Procedures</span>
+                <span className="sm:hidden">Add Patient</span>
             </h3>
         </div>
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <fieldset disabled={disabled} className="space-y-4">
                     <div>

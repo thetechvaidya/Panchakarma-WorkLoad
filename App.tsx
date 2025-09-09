@@ -17,7 +17,7 @@ import WeeklyAnalysisModal from './components/WeeklyAnalysisModal';
 import DateNavigator from './components/DateNavigator';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import IntelligentInsights from './components/IntelligentInsights';
-import { isFirebaseConnected } from './firebaseConfig';
+import { isFirebaseConnected, checkFirebaseConnection } from './firebaseConfig';
 
 
 const getISODateString = (date: Date): string => date.toISOString().split('T')[0];
@@ -43,15 +43,46 @@ const App: React.FC = () => {
   const [showAnalytics, setShowAnalytics] = useState<boolean>(false);
   const [showInsights, setShowInsights] = useState<boolean>(false);
   const [exportText, setExportText] = useState<string>('');
+  const [firebaseStatus, setFirebaseStatus] = useState<{ connected: boolean; checking: boolean }>({ 
+    connected: false, 
+    checking: true 
+  });
 
   const isToday = useMemo(() => isSameDay(selectedDate, new Date()), [selectedDate]);
   
+  // Check Firebase connection status periodically
+  useEffect(() => {
+    const checkConnection = async () => {
+      setFirebaseStatus(prev => ({ ...prev, checking: true }));
+      const status = await checkFirebaseConnection();
+      setFirebaseStatus({ connected: status.connected, checking: false });
+    };
+    
+    checkConnection();
+    // Check every 30 seconds
+    const interval = setInterval(checkConnection, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const loadDataForDate = async () => {
         setIsLoading(true);
         setShowResults(false);
+        
+        // Don't block UI - load data in parallel and set defaults immediately
+        setPatients([]);
+        setScholars(INITIAL_SCHOLARS);
+        setAssignments(new Map());
+        
         try {
-            const data = await getDailyData(selectedDate);
+            // Try to load data with timeout
+            const dataPromise = getDailyData(selectedDate);
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Load timeout')), 8000)
+            );
+            
+            const data = await Promise.race([dataPromise, timeoutPromise]) as any;
+            
             if (data) {
                 setPatients(data.patients || []);
                 setScholars(data.scholars || INITIAL_SCHOLARS);
@@ -61,15 +92,10 @@ const App: React.FC = () => {
                     setShowResults(true);
                 }
                 setAssignments(assignmentMap);
-            } else {
-                // Reset for a new day or a day with no data
-                setPatients([]);
-                setScholars(INITIAL_SCHOLARS);
-                setAssignments(new Map());
             }
         } catch (error) {
-            console.error("Error loading data for date:", selectedDate, error);
-            alert("Could not load data. Please check console for details.");
+            console.warn("Data loading failed or timed out, using defaults:", error);
+            // Use defaults already set above
         } finally {
             setIsLoading(false);
         }
@@ -157,22 +183,54 @@ const App: React.FC = () => {
       <main className="container mx-auto p-4 md:p-6 flex-grow">
         <DateNavigator selectedDate={selectedDate} onDateChange={setSelectedDate} isLoading={isLoading} />
         
-        {/* Firebase Connection Status */}
-        {!isFirebaseConnected() && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg mb-6">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <i className="fas fa-exclamation-triangle text-yellow-400"></i>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-yellow-700">
-                  <strong>Running in offline mode.</strong> Data will not be saved to Firebase. 
-                  Check your internet connection or Firebase configuration.
-                </p>
+        {/* Enhanced Firebase Connection Status */}
+        <div className="mb-6">
+          {firebaseStatus.checking && (
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg mb-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <i className="fas fa-spinner fa-spin text-blue-400"></i>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-blue-700">
+                    <strong>Checking Firebase connection...</strong> Please wait.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+          
+          {!firebaseStatus.checking && !firebaseStatus.connected && (
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <i className="fas fa-exclamation-triangle text-yellow-400"></i>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-yellow-700">
+                    <strong>Running in offline mode.</strong> Data will not be saved to Firebase. 
+                    <br />The app is fully functional - you can add patients and distribute workload locally.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {!firebaseStatus.checking && firebaseStatus.connected && (
+            <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-lg">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <i className="fas fa-check-circle text-green-400"></i>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-green-700">
+                    <strong>Firebase connected!</strong> Your data will be automatically saved.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
         
         {/* Analytics and Insights Section */}
         {showResults && assignments.size > 0 && (
@@ -218,7 +276,7 @@ const App: React.FC = () => {
               patients={patients} 
               onAddPatient={handleAddPatient} 
               onDeletePatient={handleDeletePatient}
-              disabled={!isToday || isLoading} 
+              disabled={!isToday} 
             />
             
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">

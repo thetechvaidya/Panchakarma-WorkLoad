@@ -11,52 +11,76 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:374465789655:web:0c8627195040917274fa92"
 };
 
-// Initialize Firebase
+// Initialize Firebase with non-blocking approach
 let app;
 let db;
+let isInitialized = false;
+let isConnected = false;
 
-try {
-  app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
-  
-  // Connection status tracking
-  console.log("✅ Firebase initialized successfully");
-  
-  // Test connection
-  (async () => {
+const initializeFirebase = async () => {
+  try {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    isInitialized = true;
+    console.log("✅ Firebase initialized successfully");
+    
+    // Test connection asynchronously without blocking
     try {
-      // Simple connection test
-      await import('firebase/firestore').then(({ enableNetwork }) => enableNetwork(db));
+      const { enableNetwork } = await import('firebase/firestore');
+      await Promise.race([
+        enableNetwork(db),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+      ]);
+      isConnected = true;
       console.log("✅ Firebase Firestore connected successfully");
     } catch (error) {
-      console.warn("⚠️ Firebase Firestore connection issue:", error);
+      console.warn("⚠️ Firebase connection timeout or error:", error);
+      isConnected = false;
     }
-  })();
-  
-} catch (error) {
-  console.error("❌ Firebase initialization failed:", error);
-  console.log("📊 Running in offline mode - data will not persist");
-}
-
-// Export connection status
-export const isFirebaseConnected = () => {
-  return !!db;
+    
+  } catch (error) {
+    console.error("❌ Firebase initialization failed:", error);
+    console.log("📊 Running in offline mode - data will not persist");
+    isInitialized = false;
+    isConnected = false;
+  }
 };
+
+// Initialize Firebase asynchronously without blocking the UI
+initializeFirebase();
+
+// Export connection status functions
+export const isFirebaseInitialized = () => isInitialized;
+export const isFirebaseConnected = () => isConnected;
 
 // Export Firebase instances
 export { db, app };
 
-// Export test function for debugging
-export const testFirebaseConnection = async () => {
+// Real-time connection status with timeout
+export const checkFirebaseConnection = async (): Promise<{ connected: boolean; error?: string }> => {
   if (!db) {
-    return { success: false, error: "Firebase not initialized" };
+    return { connected: false, error: "Firebase not initialized" };
   }
   
   try {
-    const { enableNetwork } = await import('firebase/firestore');
-    await enableNetwork(db);
-    return { success: true, message: "Firebase connected successfully" };
+    const { enableNetwork, collection, getDocs, limit, query } = await import('firebase/firestore');
+    
+    // Quick connection test with timeout
+    await Promise.race([
+      getDocs(query(collection(db, 'connection_test'), limit(1))),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), 3000))
+    ]);
+    
+    isConnected = true;
+    return { connected: true };
   } catch (error) {
-    return { success: false, error: error.message };
+    isConnected = false;
+    return { connected: false, error: error.message };
   }
+};
+
+// Force offline mode for testing
+export const forceOfflineMode = () => {
+  isConnected = false;
+  console.log("🔄 Forced offline mode enabled");
 };
