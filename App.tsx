@@ -1,10 +1,12 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import type { Scholar, Patient, Assignment } from './types';
+import { collection, doc, onSnapshot, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, query, orderBy, limit, where } from 'firebase/firestore';
+import type { Scholar, Patient, Assignment, HistoricalAssignmentRecord } from './types';
 import { INITIAL_SCHOLARS } from './constants';
-import { parsePreviousAssignments } from './services/parserService';
 import { distributeWorkload } from './services/distributionService';
 import { generateExportText } from './services/exportService';
-import { saveDailyAssignments } from './services/historyService';
+import { getLatestAssignmentsForContinuity } from './services/historyService';
+import { db, isFirebaseConfigured } from './firebaseConfig';
+
 import Header from './components/Header';
 import ScholarSetup from './components/ScholarSetup';
 import ResultsDisplay from './components/ResultsDisplay';
@@ -14,70 +16,125 @@ import RulesDisplay from './components/RulesDisplay';
 import ProcedureGradeTable from './components/ProcedureGradeTable';
 import PatientInput from './components/PatientInput';
 import WeeklyAnalysisModal from './components/WeeklyAnalysisModal';
+import FirebaseSetup from './components/FirebaseSetup';
+
+const getISODateString = (date: Date): string => date.toISOString().split('T')[0];
+const todayStr = getISODateString(new Date());
 
 const App: React.FC = () => {
-  const [patients, setPatients] = useState<Patient[]>(() => {
-    try {
-      const savedPatients = localStorage.getItem('panchkarma_patients');
-      return savedPatients ? JSON.parse(savedPatients) : [];
-    } catch (error) {
-      console.error("Error loading patients from localStorage:", error);
-      return [];
-    }
-  });
-  const [previousDayInputText, setPreviousDayInputText] = useState<string>('');
-  const [scholars, setScholars] = useState<Scholar[]>(() => {
-    try {
-      const savedScholars = localStorage.getItem('panchkarma_scholars');
-      return savedScholars ? JSON.parse(savedScholars) : INITIAL_SCHOLARS;
-    } catch (error) {
-      console.error("Error loading scholars from localStorage:", error);
-      return INITIAL_SCHOLARS;
-    }
-  });
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [scholars, setScholars] = useState<Scholar[]>([]);
   const [assignments, setAssignments] = useState<Map<string, Assignment>>(new Map());
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isDistributing, setIsDistributing] = useState<boolean>(false);
   const [showResults, setShowResults] = useState<boolean>(false);
   const [isExportModalOpen, setExportModalOpen] = useState<boolean>(false);
   const [isAnalysisModalOpen, setAnalysisModalOpen] = useState<boolean>(false);
   const [exportText, setExportText] = useState<string>('');
-
+  
+  // Seed initial scholars to Firestore if they don't exist
   useEffect(() => {
-    try {
-      localStorage.setItem('panchkarma_patients', JSON.stringify(patients));
-    } catch (error) {
-      console.error("Error saving patients to localStorage:", error);
+    if (!db) return;
+    const scholarsCol = collection(db, 'scholars');
+    getDocs(scholarsCol).then(snapshot => {
+      if (snapshot.empty) {
+        console.log("No scholars found in Firestore, seeding initial data...");
+        const batch = writeBatch(db);
+        INITIAL_SCHOLARS.forEach(scholar => {
+          const docRef = doc(db, 'scholars', scholar.id);
+          batch.set(docRef, scholar);
+        });
+        batch.commit();
+      }
+    });
+  }, []);
+
+  // Set up real-time listeners for scholars and today's patients/assignments
+  useEffect(() => {
+    if (!db) {
+        setIsLoading(false);
+        return;
     }
+
+    // Listener for scholars
+    const scholarsUnsub = onSnapshot(collection(db, 'scholars'), (snapshot) => {
+      const scholarsData = snapshot.docs.map(doc => doc.data() as Scholar);
+      setScholars(scholarsData);
+      setIsLoading(false);
+    });
+
+    // Listener for today's data (patients and assignments)
+    const todayDocRef = doc(db, 'daily_data', todayStr);
+    const dailyUnsub = onSnapshot(todayDocRef, (doc) => {
+        if (doc.exists()) {
+            const data = doc.data() as HistoricalAssignmentRecord;
+            setPatients(data.patients || []);
+            if (data.assignments && data.assignments.length > 0) {
+              const assignmentsMap = new Map(data.assignments.map(a => [a.scholar.id, a]));
+              setAssignments(assignmentsMap);
+              setShowResults(true);
+            } else {
+              setAssignments(new Map());
+            }
+        } else {
+            // No data for today yet
+            setPatients([]);
+            setAssignments(new Map());
+        }
+    });
+
+    return () => {
+      scholarsUnsub();
+      dailyUnsub();
+    };
+  }, []);
+  
+  const handleAddPatient = useCallback(async (patientData: Omit<Patient, 'id' | 'isAttendant'>) => {
+      if (!db) return;
+      const newPatient: Patient = {
+        ...patientData,
+        id: `patient-${patientData.name.trim().replace(/\s/g, '')}-${Date.now()}`,
+        isAttendant: false,
+      }
+      const todayDocRef = doc(db, 'daily_data', todayStr);
+      await setDoc(todayDocRef, { date: todayStr, patients: arrayUnion(newPatient) }, { merge: true });
+  }, []);
+
+  const handleDeletePatient = useCallback(async (patientId: string) => {
+      if (!db) return;
+      const patientToDelete = patients.find(p => p.id === patientId);
+      if (patientToDelete) {
+        const todayDocRef = doc(db, 'daily_data', todayStr);
+        await updateDoc(todayDocRef, { patients: arrayRemove(patientToDelete) });
+      }
   }, [patients]);
+  
+  const handleToggleScholarStatus = useCallback(async (scholarId: string, currentStatus: boolean) => {
+      if (!db) return;
+      const scholarDocRef = doc(db, 'scholars', scholarId);
+      await updateDoc(scholarDocRef, { isPosted: !currentStatus });
+  }, []);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('panchkarma_scholars', JSON.stringify(scholars));
-    } catch (error) {
-      console.error("Error saving scholars to localStorage:", error);
-    }
-  }, [scholars]);
-
-
-  const handleDistribute = useCallback(() => {
-    setIsLoading(true);
+  const handleDistribute = useCallback(async () => {
+    if (!db) return;
+    setIsDistributing(true);
     setShowResults(true);
     
-    // Simulate processing time for better UX
-    setTimeout(() => {
-        try {
-            const previousAssignments = parsePreviousAssignments(previousDayInputText);
-            const newAssignments = distributeWorkload(patients, scholars, previousAssignments);
-            setAssignments(newAssignments);
-            saveDailyAssignments(newAssignments); // Save history
-        } catch(error) {
-            console.error("Error during workload distribution:", error);
-            alert("An error occurred. Please check the console for details.");
-        } finally {
-            setIsLoading(false);
-        }
-    }, 500);
-  }, [patients, scholars, previousDayInputText]);
+    try {
+        const previousAssignments = await getLatestAssignmentsForContinuity();
+        const newAssignments = distributeWorkload(patients, scholars, previousAssignments);
+        const newAssignmentsArray = Array.from(newAssignments.values());
+
+        const todayDocRef = doc(db, 'daily_data', todayStr);
+        await setDoc(todayDocRef, { date: todayStr, assignments: newAssignmentsArray }, { merge: true });
+        
+    } catch(error) {
+        console.error("Error during workload distribution:", error);
+        alert("An error occurred. Please check the console for details.");
+    } finally {
+        setIsDistributing(false);
+    }
+  }, [patients, scholars]);
   
   const handleExport = () => {
     const text = generateExportText(assignments);
@@ -85,35 +142,43 @@ const App: React.FC = () => {
     setExportModalOpen(true);
   };
 
+  if (!isFirebaseConfigured) {
+    return <FirebaseSetup />;
+  }
+
+  if (isLoading) {
+      return (
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+              <i className="fas fa-spinner fa-spin text-4xl text-teal-600"></i>
+              <p className="mt-4 text-lg text-gray-600">Connecting to the department server...</p>
+          </div>
+        </div>
+      );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       <main className="container mx-auto p-4 md:p-6 flex-grow">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 flex flex-col gap-6">
-            <PatientInput patients={patients} setPatients={setPatients} />
+            <PatientInput patients={patients} onAddPatient={handleAddPatient} onDeletePatient={handleDeletePatient} />
             
             <div className="bg-white rounded-xl shadow-md border border-gray-200">
               <div className="p-6">
-                  <label htmlFor="previousDayInput" className="block text-sm font-bold text-gray-700 mb-2">
-                      <i className="fas fa-user-clock text-amber-600 mr-2"></i>Continuity List <span className="text-xs font-normal text-gray-500">(Optional)</span>
-                  </label>
-                  <p className="text-xs text-gray-500 mb-2">Paste yesterday's exported list here to maintain patient-scholar continuity.</p>
-                  <textarea
-                      id="previousDayInput"
-                      value={previousDayInputText}
-                      onChange={(e) => setPreviousDayInputText(e.target.value)}
-                      className="w-full h-32 p-3 border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-shadow duration-200 text-sm font-mono"
-                      placeholder="Paste the final distributed list from the previous day here..."
-                  />
+                  <div className="text-sm font-bold text-gray-700 mb-2 flex items-center">
+                      <i className="fas fa-user-clock text-green-600 mr-2"></i>Continuity is now Automatic
+                  </div>
+                  <p className="text-xs text-gray-500 mb-2">The system will automatically check yesterday's assignments to maintain patient-scholar continuity. The manual list is no longer needed.</p>
               </div>
               <div className="p-4 bg-gray-50/75 border-t border-gray-200 space-y-3">
                 <button
                     onClick={handleDistribute}
-                    disabled={isLoading}
+                    disabled={isDistributing}
                     className="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center space-x-2 shadow hover:shadow-lg"
                 >
-                    {isLoading ? (
+                    {isDistributing ? (
                     <>
                         <i className="fas fa-spinner fa-spin"></i>
                         <span>Distributing...</span>
@@ -135,13 +200,13 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <ScholarSetup scholars={scholars} setScholars={setScholars} />
+            <ScholarSetup scholars={scholars} onToggleScholarStatus={handleToggleScholarStatus} />
             <ProcedureGradeTable />
             <RulesDisplay />
           </div>
           <div className="lg:col-span-2">
             {showResults ? (
-                isLoading ? (
+                isDistributing ? (
                     <div className="flex items-center justify-center h-full bg-white rounded-xl shadow-md p-10">
                         <div className="text-center">
                             <i className="fas fa-spinner fa-spin text-4xl text-teal-600"></i>

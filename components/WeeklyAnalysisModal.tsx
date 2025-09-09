@@ -19,10 +19,15 @@ const getISODateString = (date: Date): string => date.toISOString().split('T')[0
 
 const WeeklyAnalysisModal: React.FC<WeeklyAnalysisModalProps> = ({ isOpen, onClose, scholars }) => {
   const [history, setHistory] = useState<HistoricalAssignmentRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (isOpen) {
-      setHistory(getWeeklyHistory());
+      setIsLoading(true);
+      getWeeklyHistory()
+        .then(setHistory)
+        .catch(console.error)
+        .finally(() => setIsLoading(false));
     }
   }, [isOpen]);
 
@@ -41,10 +46,10 @@ const WeeklyAnalysisModal: React.FC<WeeklyAnalysisModalProps> = ({ isOpen, onClo
       const dailyPoints = last7Days.map(day => {
         const dayStr = getISODateString(day);
         const dayAssignments = historyMap.get(dayStr);
-        if (!dayAssignments) return null;
+        if (dayAssignments === undefined) return null; // No data for this day
         
         const scholarAssignment = dayAssignments.find(a => a.scholar.id === scholar.id);
-        return scholarAssignment ? scholarAssignment.totalPoints : 0;
+        return scholarAssignment ? scholarAssignment.totalPoints : 0; // Scholar was present but had 0 points
       });
 
       const totalPoints = dailyPoints.reduce((sum, points) => sum + (points || 0), 0);
@@ -70,7 +75,12 @@ const WeeklyAnalysisModal: React.FC<WeeklyAnalysisModalProps> = ({ isOpen, onClo
           </button>
         </div>
         <div className="p-6 max-h-[70vh] overflow-y-auto">
-            {weeklyStats.length > 0 && history.length > 0 ? (
+            {isLoading ? (
+                 <div className="text-center text-gray-500 py-16">
+                    <i className="fas fa-spinner fa-spin text-4xl text-teal-600 mb-4"></i>
+                    <p>Loading historical data...</p>
+                </div>
+            ) : weeklyStats.length > 0 && history.length > 0 ? (
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left text-gray-500">
                         <thead className="text-xs text-gray-700 uppercase bg-gray-100 sticky top-0">

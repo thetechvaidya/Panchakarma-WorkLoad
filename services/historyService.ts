@@ -1,54 +1,72 @@
-import type { Assignment, HistoricalAssignmentRecord } from '../types';
+import type { HistoricalAssignmentRecord } from '../types';
+import { db } from '../firebaseConfig';
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 
-const STORAGE_KEY = 'panchkarma_assignment_history';
-const HISTORY_DAYS = 7; // Keep 7 days of history
+const HISTORY_DAYS = 7; 
 
 // Utility to get date string in YYYY-MM-DD format
 const getISODateString = (date: Date): string => {
   return date.toISOString().split('T')[0];
 };
 
-export const saveDailyAssignments = (assignments: Map<string, Assignment>): void => {
-  try {
-    const todayStr = getISODateString(new Date());
-    const existingHistory: HistoricalAssignmentRecord[] = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    
-    // Filter out today's record if it already exists to prevent duplicates
-    const filteredHistory = existingHistory.filter(record => record.date !== todayStr);
+export const getWeeklyHistory = async (): Promise<HistoricalAssignmentRecord[]> => {
+    if (!db) return [];
 
-    // Add the new record for today
-    const newRecord: HistoricalAssignmentRecord = {
-      date: todayStr,
-      assignments: Array.from(assignments.values()),
-    };
-    const updatedHistory = [...filteredHistory, newRecord];
-
-    // Prune history to keep it to the last N days, sorted by date descending
-    if (updatedHistory.length > HISTORY_DAYS) {
-        updatedHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        updatedHistory.splice(HISTORY_DAYS);
-    }
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedHistory));
-  } catch (error)
- {
-    console.error("Failed to save assignment history:", error);
-  }
-};
-
-export const getWeeklyHistory = (): HistoricalAssignmentRecord[] => {
     try {
-        const json = localStorage.getItem(STORAGE_KEY);
-        if (!json) return [];
-        
-        const history: HistoricalAssignmentRecord[] = JSON.parse(json);
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - (HISTORY_DAYS - 1));
         sevenDaysAgo.setHours(0, 0, 0, 0);
+        const sevenDaysAgoStr = getISODateString(sevenDaysAgo);
 
-        return history.filter(record => new Date(record.date) >= sevenDaysAgo);
+        const historyCollection = collection(db, 'daily_data');
+        const q = query(
+            historyCollection,
+            where('date', '>=', sevenDaysAgoStr),
+            orderBy('date', 'desc')
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const history: HistoricalAssignmentRecord[] = [];
+        querySnapshot.forEach((doc) => {
+            history.push(doc.data() as HistoricalAssignmentRecord);
+        });
+        
+        return history;
     } catch (error) {
-        console.error("Failed to retrieve assignment history:", error);
+        console.error("Failed to retrieve assignment history from Firestore:", error);
         return [];
     }
+};
+
+export const getLatestAssignmentsForContinuity = async (): Promise<Map<string, string>> => {
+    const continuityMap = new Map<string, string>();
+    if (!db) return continuityMap;
+
+    try {
+        const today = new Date();
+        const todayStr = getISODateString(today);
+
+        const historyCollection = collection(db, 'daily_data');
+        const q = query(
+            historyCollection,
+            where('date', '<', todayStr), // Get records before today
+            orderBy('date', 'desc'),
+            limit(1) // We only need the most recent one
+        );
+
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            const latestRecord = querySnapshot.docs[0].data() as HistoricalAssignmentRecord;
+            for (const assignment of latestRecord.assignments) {
+                for (const procedure of assignment.procedures) {
+                    continuityMap.set(procedure.patientName, assignment.scholar.name);
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Failed to retrieve latest assignments for continuity:", error);
+    }
+    
+    return continuityMap;
 };

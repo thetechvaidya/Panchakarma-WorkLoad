@@ -21,9 +21,9 @@ const RulesDisplay: React.FC = () => {
             The system follows a new <strong className="text-teal-700">Equity-First</strong> model to ensure continuity and a truly balanced workload.
         </p>
 
-        <RuleItem title="Rule 1: Patient Continuity (Highest Priority)" icon="fa-user-clock">
+        <RuleItem title="Rule 1: Automatic Patient Continuity (Highest Priority)" icon="fa-user-clock">
             <p>
-                If you provide a "Continuity List", the system's first action is to assign returning patients to their previously assigned scholar, provided the gender match is correct.
+                The system automatically checks the previous day's assignments. Returning patients are re-assigned to the same scholar to ensure continuity of care, as long as the scholar is posted and the gender match is correct. No manual list is needed.
             </p>
         </RuleItem>
 

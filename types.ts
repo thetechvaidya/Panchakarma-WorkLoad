@@ -56,4 +56,6 @@ export interface Assignment {
 export interface HistoricalAssignmentRecord {
   date: string; // ISO string 'YYYY-MM-DD'
   assignments: Assignment[];
+  // FIX: Add optional `patients` property to align the type with the Firestore data model.
+  patients?: Patient[];
 }

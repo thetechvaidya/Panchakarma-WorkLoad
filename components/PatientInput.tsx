@@ -5,10 +5,11 @@ import { UNIQUE_PROCEDURES_INFO } from '../constants';
 
 interface PatientInputProps {
   patients: Patient[];
-  setPatients: React.Dispatch<React.SetStateAction<Patient[]>>;
+  onAddPatient: (patient: Omit<Patient, 'id' | 'isAttendant'>) => void;
+  onDeletePatient: (patientId: string) => void;
 }
 
-const PatientInput: React.FC<PatientInputProps> = ({ patients, setPatients }) => {
+const PatientInput: React.FC<PatientInputProps> = ({ patients, onAddPatient, onDeletePatient }) => {
   const [name, setName] = useState('');
   const [gender, setGender] = useState<Gender>(Gender.FEMALE);
   const [currentProcedures, setCurrentProcedures] = useState<Procedure[]>([]);
@@ -32,24 +33,17 @@ const PatientInput: React.FC<PatientInputProps> = ({ patients, setPatients }) =>
       alert("Please provide a patient name and at least one procedure.");
       return;
     }
-    const newPatient: Patient = {
-      id: `patient-${name.trim().replace(/\s/g, '')}-${Date.now()}`,
+    onAddPatient({
       name: name.trim(),
       gender,
       procedures: currentProcedures,
-      isAttendant: false,
-    };
-    setPatients(prev => [...prev, newPatient].sort((a,b) => a.name.localeCompare(b.name)));
+    });
 
     // Reset form
     setName('');
     setGender(Gender.FEMALE);
     setCurrentProcedures([]);
     setProcedureFilter('');
-  };
-
-  const handleDeletePatient = (patientId: string) => {
-    setPatients(prev => prev.filter(p => p.id !== patientId));
   };
 
   const isProcedureSelected = (code: string) => currentProcedures.some(p => p.code === code);
@@ -140,7 +134,7 @@ const PatientInput: React.FC<PatientInputProps> = ({ patients, setPatients }) =>
                                         {patient.procedures.map(proc => <li key={proc.id} className="list-disc list-inside">{proc.name}</li>)}
                                     </ul>
                                 </div>
-                                <button onClick={() => handleDeletePatient(patient.id)} className="text-gray-400 hover:text-red-600 font-bold py-1 px-2 rounded-lg text-sm" aria-label={`Delete patient ${patient.name}`}>
+                                <button onClick={() => onDeletePatient(patient.id)} className="text-gray-400 hover:text-red-600 font-bold py-1 px-2 rounded-lg text-sm" aria-label={`Delete patient ${patient.name}`}>
                                     <i className="fas fa-trash-alt"></i>
                                 </button>
                             </div>
