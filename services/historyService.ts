@@ -1,12 +1,41 @@
-import type { HistoricalAssignmentRecord } from '../types';
+import type { HistoricalAssignmentRecord, Assignment, Patient } from '../types';
 import { db } from '../firebaseConfig';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit, doc, setDoc } from 'firebase/firestore';
 
 const HISTORY_DAYS = 7; 
 
 // Utility to get date string in YYYY-MM-DD format
 const getISODateString = (date: Date): string => {
   return date.toISOString().split('T')[0];
+};
+
+export const saveDailyAssignments = async (
+  assignments: Map<string, Assignment>,
+  patients: Patient[]
+): Promise<void> => {
+  if (!db) {
+    console.warn("Firebase not configured. Data not saved.");
+    return;
+  }
+
+  try {
+    const todayStr = getISODateString(new Date());
+    const docRef = doc(db, 'daily_data', todayStr);
+
+    const record: HistoricalAssignmentRecord = {
+      date: todayStr,
+      assignments: Array.from(assignments.values()),
+      patients: patients,
+    };
+
+    // Use setDoc with merge to create or update the document for today
+    await setDoc(docRef, record, { merge: true });
+    console.log(`Successfully saved assignment data for ${todayStr}.`);
+  } catch (error) {
+    console.error("Failed to save daily assignments to Firestore:", error);
+    // Propagate error to be handled by the caller
+    throw error;
+  }
 };
 
 export const getWeeklyHistory = async (): Promise<HistoricalAssignmentRecord[]> => {

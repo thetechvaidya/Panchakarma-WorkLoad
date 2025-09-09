@@ -3,6 +3,7 @@ import type { Scholar, Patient, Assignment } from './types';
 import { INITIAL_SCHOLARS } from './constants';
 import { distributeWorkload } from './services/distributionService';
 import { generateExportText } from './services/exportService';
+import { getLatestAssignmentsForContinuity, saveDailyAssignments } from './services/historyService';
 
 import Header from './components/Header';
 import ScholarSetup from './components/ScholarSetup';
@@ -47,26 +48,26 @@ const App: React.FC = () => {
       );
   }, []);
 
-  const handleDistribute = useCallback(() => {
+  const handleDistribute = useCallback(async () => {
+    if (patients.length === 0) {
+        alert("Please add at least one patient before distributing.");
+        return;
+    }
     setIsDistributing(true);
     setShowResults(true);
     
-    // Simulate async operation for UI feedback
-    setTimeout(() => {
-        try {
-            // NOTE: Continuity feature is disabled in offline mode as it requires fetching historical data.
-            const previousAssignments = new Map<string, string>();
-            const newAssignments = distributeWorkload(patients, scholars, previousAssignments);
-            setAssignments(newAssignments);
-            
-        } catch(error) {
-            console.error("Error during workload distribution:", error);
-            alert("An error occurred. Please check the console for details.");
-        } finally {
-            setIsDistributing(false);
-        }
-    }, 500); // Small delay to show loading state spinner
-
+    try {
+        const previousAssignments = await getLatestAssignmentsForContinuity();
+        const newAssignments = distributeWorkload(patients, scholars, previousAssignments);
+        setAssignments(newAssignments);
+        await saveDailyAssignments(newAssignments, patients);
+        
+    } catch(error) {
+        console.error("Error during workload distribution:", error);
+        alert("An error occurred during distribution or saving. Please check the console for details.");
+    } finally {
+        setIsDistributing(false);
+    }
   }, [patients, scholars]);
   
   const handleExport = () => {
@@ -86,14 +87,14 @@ const App: React.FC = () => {
             <div className="bg-white rounded-xl shadow-md border border-gray-200">
               <div className="p-6">
                   <div className="text-sm font-bold text-gray-700 mb-2 flex items-center">
-                      <i className="fas fa-database text-orange-500 mr-2"></i>Database Disconnected
+                      <i className="fas fa-check-circle text-green-500 mr-2"></i>Database Connected
                   </div>
-                  <p className="text-xs text-gray-500 mb-2">The app is running in offline mode. Continuity and weekly analysis features are disabled. Data will not be saved.</p>
+                  <p className="text-xs text-gray-500 mb-2">Continuity and weekly analysis are enabled. Assignments are saved automatically.</p>
               </div>
               <div className="p-4 bg-gray-50/75 border-t border-gray-200 space-y-3">
                 <button
                     onClick={handleDistribute}
-                    disabled={isDistributing}
+                    disabled={isDistributing || patients.length === 0}
                     className="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center space-x-2 shadow hover:shadow-lg"
                 >
                     {isDistributing ? (
@@ -109,7 +110,7 @@ const App: React.FC = () => {
                     )}
                 </button>
                 <button
-                  onClick={() => alert('Weekly Analysis is disabled in offline mode as it requires historical data from the database.')}
+                  onClick={() => setAnalysisModalOpen(true)}
                   className="w-full bg-white text-gray-500 border border-gray-300 font-bold py-3 px-4 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all duration-300 ease-in-out flex items-center justify-center space-x-2"
                 >
                   <i className="fas fa-chart-line"></i>

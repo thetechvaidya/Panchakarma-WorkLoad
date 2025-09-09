@@ -1,27 +1,22 @@
-import { initializeApp } from 'firebase/app';
+// FIX: Use namespace import to resolve an issue where 'initializeApp' is not found as a named export.
+import * as firebaseApp from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
-// IMPORTANT: These values need to be set as Environment Variables in your hosting provider.
-// They are found in your Firebase project's settings.
-// For client-side access (like in Vercel/Vite), they must be prefixed with VITE_
-// FIX: Use `import.meta.env` to access environment variables in a Vite project.
-// `process.env` is for Node.js environments and is not available in the browser
-// by default in Vite, which can lead to build failures.
-// FIX: Cast `import.meta` to `any` to resolve TypeScript error "Property 'env' does not exist on type 'ImportMeta'".
+// The Firebase configuration is now hardcoded into the application.
 const firebaseConfig = {
-  apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY,
-  authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: (import.meta as any).env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyA1m3GkHXp3DOirBgZuvIoEV2QkLuSsw_E",
+  authDomain: "panchakarma-workload.firebaseapp.com",
+  projectId: "panchakarma-workload",
+  storageBucket: "panchakarma-workload.appspot.com",
+  messagingSenderId: "374465789655",
+  appId: "1:374465789655:web:0c8627195040917274fa92"
 };
 
-// A check to ensure the user has configured their environment variables.
+// A check to ensure the configuration is valid.
 export const isFirebaseConfigured = !!(firebaseConfig.apiKey && firebaseConfig.projectId);
 
 // Initialize Firebase only if the configuration is provided.
-const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
+const app = isFirebaseConfigured ? firebaseApp.initializeApp(firebaseConfig) : null;
 
 // Initialize Cloud Firestore. This will be null if the app is not configured.
 export const db = app ? getFirestore(app) : null;
