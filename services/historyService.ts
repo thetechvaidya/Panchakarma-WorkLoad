@@ -1,26 +1,12 @@
 import type { HistoricalAssignmentRecord, Assignment, Patient } from '../types';
 import { db } from '../firebaseConfig';
-import { collection, query, where, getDocs, orderBy, limit, doc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit, doc, setDoc } from 'firebase/firestore';
 
 const HISTORY_DAYS = 7; 
 
 // Utility to get date string in YYYY-MM-DD format
 const getISODateString = (date: Date): string => {
   return date.toISOString().split('T')[0];
-};
-
-export const checkDBConnection = async (): Promise<boolean> => {
-    if (!db) return false;
-    try {
-        // Attempt a simple, low-cost read operation.
-        // We don't care about the result, just that it doesn't throw an error.
-        await getDoc(doc(db, '_connection_test', '1'));
-        console.log("Firebase connection successful.");
-        return true;
-    } catch (error) {
-        console.error("Firebase connection check failed:", error);
-        return false;
-    }
 };
 
 export const saveDailyAssignments = async (
