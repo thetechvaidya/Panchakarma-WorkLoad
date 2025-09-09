@@ -2,18 +2,34 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
-// Firebase configuration is hardcoded as requested for automatic setup.
+// Firebase configuration using Vercel environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyA1m3GkHXp3DOirBgZuvIoEV2QkLuSsw_E",
-  authDomain: "panchakarma-workload.firebaseapp.com",
-  projectId: "panchakarma-workload",
-  storageBucket: "panchakarma-workload.firebasestorage.app",
-  messagingSenderId: "374465789655",
-  appId: "1:374465789655:web:0c8627195040917274fa92"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+// Validate that all required environment variables are present
+const requiredEnvVars = [
+  'VITE_FIREBASE_API_KEY',
+  'VITE_FIREBASE_AUTH_DOMAIN', 
+  'VITE_FIREBASE_PROJECT_ID',
+  'VITE_FIREBASE_STORAGE_BUCKET',
+  'VITE_FIREBASE_MESSAGING_SENDER_ID',
+  'VITE_FIREBASE_APP_ID'
+];
+
+const missingVars = requiredEnvVars.filter(varName => !import.meta.env[varName]);
+
+if (missingVars.length > 0) {
+  console.error('Missing Firebase environment variables:', missingVars);
+  throw new Error(`Missing required Firebase environment variables: ${missingVars.join(', ')}`);
+}
+
 // Initialize Firebase
-// FIX: Updated Firebase initialization to use the modular v9 SDK. The `initializeApp` function is a named export, not a method on a namespace.
 const app = initializeApp(firebaseConfig);
 
 // Initialize Cloud Firestore and export it

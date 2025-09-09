@@ -15,6 +15,20 @@ import ProcedureGradeTable from './components/ProcedureGradeTable';
 import PatientInput from './components/PatientInput';
 import WeeklyAnalysisModal from './components/WeeklyAnalysisModal';
 import DateNavigator from './components/DateNavigator';
+import FirebaseSetup from './components/FirebaseSetup';
+
+// Check if Firebase is properly configured
+const isFirebaseConfigured = () => {
+  const requiredVars = [
+    'VITE_FIREBASE_API_KEY',
+    'VITE_FIREBASE_AUTH_DOMAIN',
+    'VITE_FIREBASE_PROJECT_ID',
+    'VITE_FIREBASE_STORAGE_BUCKET',
+    'VITE_FIREBASE_MESSAGING_SENDER_ID',
+    'VITE_FIREBASE_APP_ID'
+  ];
+  return requiredVars.every(varName => import.meta.env[varName]);
+};
 
 const getISODateString = (date: Date): string => date.toISOString().split('T')[0];
 
@@ -143,6 +157,11 @@ const App: React.FC = () => {
     setExportText(text);
     setExportModalOpen(true);
   };
+
+  // Show Firebase setup screen if not configured
+  if (!isFirebaseConfigured()) {
+    return <FirebaseSetup />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
