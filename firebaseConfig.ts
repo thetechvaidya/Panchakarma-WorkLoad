@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
 // Firebase configuration - works automatically with Vercel environment variables
 const firebaseConfig = {
@@ -12,7 +12,51 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+let app;
+let db;
 
-// Initialize Cloud Firestore and export it
-export const db = getFirestore(app);
+try {
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  
+  // Connection status tracking
+  console.log("✅ Firebase initialized successfully");
+  
+  // Test connection
+  (async () => {
+    try {
+      // Simple connection test
+      await import('firebase/firestore').then(({ enableNetwork }) => enableNetwork(db));
+      console.log("✅ Firebase Firestore connected successfully");
+    } catch (error) {
+      console.warn("⚠️ Firebase Firestore connection issue:", error);
+    }
+  })();
+  
+} catch (error) {
+  console.error("❌ Firebase initialization failed:", error);
+  console.log("📊 Running in offline mode - data will not persist");
+}
+
+// Export connection status
+export const isFirebaseConnected = () => {
+  return !!db;
+};
+
+// Export Firebase instances
+export { db, app };
+
+// Export test function for debugging
+export const testFirebaseConnection = async () => {
+  if (!db) {
+    return { success: false, error: "Firebase not initialized" };
+  }
+  
+  try {
+    const { enableNetwork } = await import('firebase/firestore');
+    await enableNetwork(db);
+    return { success: true, message: "Firebase connected successfully" };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};

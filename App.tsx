@@ -15,6 +15,9 @@ import ProcedureGradeTable from './components/ProcedureGradeTable';
 import PatientInput from './components/PatientInput';
 import WeeklyAnalysisModal from './components/WeeklyAnalysisModal';
 import DateNavigator from './components/DateNavigator';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import IntelligentInsights from './components/IntelligentInsights';
+import { isFirebaseConnected } from './firebaseConfig';
 
 
 const getISODateString = (date: Date): string => date.toISOString().split('T')[0];
@@ -37,6 +40,8 @@ const App: React.FC = () => {
   const [showResults, setShowResults] = useState<boolean>(false);
   const [isExportModalOpen, setExportModalOpen] = useState<boolean>(false);
   const [isAnalysisModalOpen, setAnalysisModalOpen] = useState<boolean>(false);
+  const [showAnalytics, setShowAnalytics] = useState<boolean>(false);
+  const [showInsights, setShowInsights] = useState<boolean>(false);
   const [exportText, setExportText] = useState<string>('');
 
   const isToday = useMemo(() => isSameDay(selectedDate, new Date()), [selectedDate]);
@@ -151,6 +156,62 @@ const App: React.FC = () => {
       <Header />
       <main className="container mx-auto p-4 md:p-6 flex-grow">
         <DateNavigator selectedDate={selectedDate} onDateChange={setSelectedDate} isLoading={isLoading} />
+        
+        {/* Firebase Connection Status */}
+        {!isFirebaseConnected() && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <i className="fas fa-exclamation-triangle text-yellow-400"></i>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700">
+                  <strong>Running in offline mode.</strong> Data will not be saved to Firebase. 
+                  Check your internet connection or Firebase configuration.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Analytics and Insights Section */}
+        {showResults && assignments.size > 0 && (
+          <div className="mb-6 space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setShowAnalytics(!showAnalytics)}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  showAnalytics 
+                    ? 'bg-teal-600 text-white shadow-md' 
+                    : 'bg-white text-teal-600 border border-teal-600 hover:bg-teal-50'
+                }`}
+              >
+                <i className="fas fa-chart-bar mr-2"></i>
+                {showAnalytics ? 'Hide Analytics' : 'Show Analytics'}
+              </button>
+              <button
+                onClick={() => setShowInsights(!showInsights)}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  showInsights 
+                    ? 'bg-purple-600 text-white shadow-md' 
+                    : 'bg-white text-purple-600 border border-purple-600 hover:bg-purple-50'
+                }`}
+              >
+                <i className="fas fa-brain mr-2"></i>
+                {showInsights ? 'Hide AI Insights' : 'Show AI Insights'}
+              </button>
+            </div>
+            
+            {showAnalytics && (
+              <AnalyticsDashboard assignments={assignments} patients={patients} />
+            )}
+            
+            {showInsights && (
+              <IntelligentInsights assignments={assignments} patients={patients} scholars={scholars} />
+            )}
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 flex flex-col gap-6">
             <PatientInput 
@@ -160,32 +221,47 @@ const App: React.FC = () => {
               disabled={!isToday || isLoading} 
             />
             
-            <div className="bg-white rounded-xl shadow-md border border-gray-200">
-              <div className="p-4 bg-gray-50/75 border-t border-gray-200 space-y-3">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-teal-50 to-blue-50 px-4 py-3 border-b border-gray-200">
+                <h3 className="font-bold text-gray-800 flex items-center">
+                  <i className="fas fa-robot text-teal-600 mr-2"></i>
+                  Intelligent Distribution
+                </h3>
+              </div>
+              <div className="p-4 space-y-3">
                 <button
                     onClick={handleDistribute}
                     disabled={isDistributing || patients.length === 0 || !isToday || isLoading}
-                    className="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center space-x-2 shadow hover:shadow-lg"
+                    className="w-full bg-gradient-to-r from-teal-600 to-teal-700 text-white font-bold py-3 px-4 rounded-lg hover:from-teal-700 hover:to-teal-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl"
                 >
                     {isDistributing ? (
                     <>
                         <i className="fas fa-spinner fa-spin"></i>
-                        <span>Distributing...</span>
+                        <span>AI Processing...</span>
                     </>
                     ) : (
                     <>
-                        <i className="fa-solid fa-arrows-split-up-and-left"></i>
-                        <span>Distribute Workload</span>
+                        <i className="fa-solid fa-brain"></i>
+                        <span>Smart Distribute</span>
                     </>
                     )}
                 </button>
-                <button
-                  onClick={() => setAnalysisModalOpen(true)}
-                  className="w-full bg-white text-gray-500 border border-gray-300 font-bold py-3 px-4 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all duration-300 ease-in-out flex items-center justify-center space-x-2 disabled:bg-gray-200 disabled:cursor-not-allowed"
-                >
-                  <i className="fas fa-chart-line"></i>
-                  <span>View Weekly Analysis</span>
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setAnalysisModalOpen(true)}
+                    className="bg-white text-purple-600 border border-purple-300 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-400 transition-all duration-300 ease-in-out flex items-center justify-center space-x-1 text-sm"
+                  >
+                    <i className="fas fa-chart-line"></i>
+                    <span>Weekly</span>
+                  </button>
+                  <button
+                    onClick={() => setShowInsights(!showInsights)}
+                    className="bg-white text-blue-600 border border-blue-300 font-medium py-2 px-3 rounded-lg hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all duration-300 ease-in-out flex items-center justify-center space-x-1 text-sm"
+                  >
+                    <i className="fas fa-lightbulb"></i>
+                    <span>Insights</span>
+                  </button>
+                </div>
               </div>
             </div>
 
