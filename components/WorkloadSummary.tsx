@@ -1,8 +1,11 @@
 import React from 'react';
-import type { Assignment } from '../types';
+import type { Assignment, Scholar, Patient } from '../types';
+import { analyzeDistribution } from '../services/intelligentDistributionService';
 
 interface WorkloadSummaryProps {
   assignments: Map<string, Assignment>;
+  patients?: Patient[];
+  scholars?: Scholar[];
 }
 
 const StatCard: React.FC<{ icon: string; value: string | number; label: string; color: string }> = ({ icon, value, label, color }) => {
@@ -29,7 +32,10 @@ const StatCard: React.FC<{ icon: string; value: string | number; label: string; 
 };
 
 
-const WorkloadSummary: React.FC<WorkloadSummaryProps> = ({ assignments }) => {
+const WorkloadSummary: React.FC<WorkloadSummaryProps> = ({ assignments, patients = [], scholars = [] }) => {
+  const metrics = patients.length > 0 && scholars.length > 0 
+    ? analyzeDistribution(assignments, patients, scholars)
+    : null;
     const allAssignments = Array.from(assignments.values());
     
     const totalPoints = allAssignments.reduce((sum, a) => sum + a.totalPoints, 0);

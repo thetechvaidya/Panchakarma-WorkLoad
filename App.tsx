@@ -287,7 +287,7 @@ const App: React.FC = () => {
                             <p>You are viewing a historical record. No changes can be made.</p>
                         </div>
                     )}
-                    <WorkloadSummary assignments={assignments} />
+                    <WorkloadSummary assignments={assignments} patients={patients} scholars={scholars} />
                     <ResultsDisplay assignments={assignments} onExport={handleExport} />
                 </div>
             ) : (
