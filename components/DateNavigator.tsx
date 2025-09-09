@@ -40,29 +40,35 @@ const DateNavigator: React.FC<DateNavigatorProps> = ({ selectedDate, onDateChang
   const canGoForward = !isToday(selectedDate);
 
   return (
-    <div className="bg-white p-4 rounded-xl shadow-md border border-gray-200 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <h2 className="text-xl font-bold text-gray-800 text-center sm:text-left">
-        Workload for: <span className="text-teal-600">{formatDate(selectedDate)}</span>
-      </h2>
+    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-r from-white to-gray-50">
+      <div className="text-center sm:text-left">
+        <h2 className="text-2xl font-bold text-gray-800 flex items-center justify-center sm:justify-start">
+          <i className="fas fa-calendar-day text-teal-600 mr-2"></i>
+          Workload Management
+        </h2>
+        <p className="text-sm text-gray-600 mt-1">
+          Viewing: <span className="font-semibold text-teal-600">{formatDate(selectedDate)}</span>
+        </p>
+      </div>
       <div className="flex items-center space-x-2">
          {isLoading && <i className="fas fa-spinner fa-spin text-teal-600 text-lg"></i>}
         <button 
           onClick={handlePrevDay} 
           disabled={isLoading} 
-          className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg hover:from-gray-200 hover:to-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
           aria-label="Previous day"
         >
           <i className="fas fa-chevron-left"></i>
         </button>
         {!isToday(selectedDate) && (
-            <button onClick={handleToday} disabled={isLoading} className="px-4 py-2 bg-teal-100 text-teal-700 font-semibold rounded-lg hover:bg-teal-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm">
-                Go to Today
+            <button onClick={handleToday} disabled={isLoading} className="px-4 py-2 bg-gradient-to-r from-teal-500 to-teal-600 text-white font-semibold rounded-lg hover:from-teal-600 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm shadow-md">
+                <i className="fas fa-home mr-1"></i> Today
             </button>
         )}
         <button 
           onClick={handleNextDay} 
           disabled={!canGoForward || isLoading} 
-          className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg hover:from-gray-200 hover:to-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
           aria-label="Next day"
         >
           <i className="fas fa-chevron-right"></i>

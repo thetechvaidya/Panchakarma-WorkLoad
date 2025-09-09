@@ -60,19 +60,27 @@ const PatientInput: React.FC<PatientInputProps> = ({ patients, onAddPatient, onD
 
 
   return (
-    <div className="bg-white rounded-xl shadow-md border border-gray-200">
+    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-teal-50 to-blue-50 px-6 py-4 border-b border-gray-200">
+            <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                <i className="fas fa-user-plus text-teal-600 mr-2"></i>
+                Add Patient & Procedures
+            </h3>
+        </div>
         <div className="p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Add Patient & Procedures</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <fieldset disabled={disabled} className="space-y-4">
                     <div>
-                        <label htmlFor="patientName" className="block text-sm font-bold text-gray-700 mb-1">Patient Name</label>
-                        <input type="text" id="patientName" value={name} onChange={e => setName(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100" required />
+                        <label htmlFor="patientName" className="block text-sm font-bold text-gray-700 mb-2">Patient Name</label>
+                        <input type="text" id="patientName" value={name} onChange={e => setName(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 transition-all" required placeholder="Enter patient name" />
                     </div>
                     <div>
-                        <span className="block text-sm font-bold text-gray-700 mb-2">Gender</span>
-                        <div className="flex gap-4">
-                            <label className="flex items-center"><input type="radio" name="gender" value={Gender.FEMALE} checked={gender === Gender.FEMALE} onChange={() => setGender(Gender.FEMALE)} className="h-4 w-4 text-teal-600 focus:ring-teal-500" /> <span className="ml-2 text-sm text-gray-700">Female</span></label>
+                        <span className="block text-sm font-bold text-gray-700 mb-3">Gender</span>
+                        <div className="flex gap-6">
+                            <label className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors">
+                                <input type="radio" name="gender" value={Gender.FEMALE} checked={gender === Gender.FEMALE} onChange={() => setGender(Gender.FEMALE)} className="h-4 w-4 text-teal-600 focus:ring-teal-500" /> 
+                                <span className="ml-3 text-sm font-medium text-gray-700">Female</span>
+                            </label>
                             <label className="flex items-center"><input type="radio" name="gender" value={Gender.MALE} checked={gender === Gender.MALE} onChange={() => setGender(Gender.MALE)} className="h-4 w-4 text-teal-600 focus:ring-teal-500" /> <span className="ml-2 text-sm text-gray-700">Male</span></label>
                         </div>
                     </div>

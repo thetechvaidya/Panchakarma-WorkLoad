@@ -147,7 +147,7 @@ const App: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex flex-col">
       <Header />
       <main className="container mx-auto p-4 md:p-6 flex-grow">
         <DateNavigator selectedDate={selectedDate} onDateChange={setSelectedDate} isLoading={isLoading} />
@@ -225,10 +225,43 @@ const App: React.FC = () => {
           </div>
         </div>
       </main>
-      <footer className="text-center p-4 bg-gray-100 border-t border-gray-200">
-        <p className="text-xs text-gray-500">
-            Copyright - Dr Akash Goel, PG Scholar, Department of Panchkarma, Ayurvedic & Unani Tibbia College and Hospital
-        </p>
+      <footer className="bg-gradient-to-r from-gray-800 to-gray-900 text-white py-8 px-4">
+        <div className="container mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+            <div className="text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start space-x-2 mb-2">
+                <i className="fas fa-graduation-cap text-teal-400"></i>
+                <p className="font-semibold text-sm">Developed by</p>
+              </div>
+              <p className="text-xs text-gray-300">
+                Dr. Akash Goel, PG Scholar
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center space-x-2 mb-2">
+                <i className="fas fa-hospital text-teal-400"></i>
+                <p className="font-semibold text-sm">Department of Panchkarma</p>
+              </div>
+              <p className="text-xs text-gray-300">
+                Ayurvedic & Unani Tibbia College and Hospital
+              </p>
+            </div>
+            <div className="text-center md:text-right">
+              <div className="flex items-center justify-center md:justify-end space-x-2 mb-2">
+                <i className="fas fa-calendar-check text-teal-400"></i>
+                <p className="font-semibold text-sm">Workload Management</p>
+              </div>
+              <p className="text-xs text-gray-300">
+                Smart Scholar Assignment System
+              </p>
+            </div>
+          </div>
+          <div className="border-t border-gray-700 mt-6 pt-4 text-center">
+            <p className="text-xs text-gray-400">
+              © 2025 Panchkarma Workload Distributor. All rights reserved.
+            </p>
+          </div>
+        </div>
       </footer>
       <ExportModal 
         isOpen={isExportModalOpen}
