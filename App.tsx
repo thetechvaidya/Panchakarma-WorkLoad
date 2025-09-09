@@ -1,9 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import type { Scholar, Patient, Assignment } from './types';
 import { INITIAL_SCHOLARS } from './constants';
 import { distributeWorkload } from './services/distributionService';
 import { generateExportText } from './services/exportService';
-import { getLatestAssignmentsForContinuity, saveDailyAssignments } from './services/historyService';
+import { getLatestAssignmentsForContinuity, saveDailyAssignments, checkDBConnection } from './services/historyService';
+import { isFirebaseConfigured } from './firebaseConfig';
 
 import Header from './components/Header';
 import ScholarSetup from './components/ScholarSetup';
@@ -14,8 +15,14 @@ import RulesDisplay from './components/RulesDisplay';
 import ProcedureGradeTable from './components/ProcedureGradeTable';
 import PatientInput from './components/PatientInput';
 import WeeklyAnalysisModal from './components/WeeklyAnalysisModal';
+import FirebaseSetup from './components/FirebaseSetup';
 
 const App: React.FC = () => {
+  // If Firebase environment variables are not set, show setup instructions.
+  if (!isFirebaseConfigured) {
+    return <FirebaseSetup />;
+  }
+  
   const [patients, setPatients] = useState<Patient[]>([]);
   const [scholars, setScholars] = useState<Scholar[]>(INITIAL_SCHOLARS);
   const [assignments, setAssignments] = useState<Map<string, Assignment>>(new Map());
@@ -24,6 +31,13 @@ const App: React.FC = () => {
   const [isExportModalOpen, setExportModalOpen] = useState<boolean>(false);
   const [isAnalysisModalOpen, setAnalysisModalOpen] = useState<boolean>(false);
   const [exportText, setExportText] = useState<string>('');
+  const [firebaseStatus, setFirebaseStatus] = useState<'checking' | 'connected' | 'failed'>('checking');
+  
+  useEffect(() => {
+    checkDBConnection().then(isConnected => {
+      setFirebaseStatus(isConnected ? 'connected' : 'failed');
+    });
+  }, []);
   
   const handleAddPatient = useCallback((patientData: Omit<Patient, 'id' | 'isAttendant'>) => {
       const newPatient: Patient = {
@@ -86,15 +100,32 @@ const App: React.FC = () => {
             
             <div className="bg-white rounded-xl shadow-md border border-gray-200">
               <div className="p-6">
-                  <div className="text-sm font-bold text-gray-700 mb-2 flex items-center">
-                      <i className="fas fa-check-circle text-green-500 mr-2"></i>Database Connected
-                  </div>
-                  <p className="text-xs text-gray-500 mb-2">Continuity and weekly analysis are enabled. Assignments are saved automatically.</p>
+                {firebaseStatus === 'checking' && (
+                    <div className="text-sm font-bold text-gray-500 mb-2 flex items-center animate-pulse">
+                        <i className="fas fa-spinner fa-spin mr-2"></i>Connecting to Database...
+                    </div>
+                )}
+                {firebaseStatus === 'connected' && (
+                    <>
+                        <div className="text-sm font-bold text-gray-700 mb-2 flex items-center">
+                            <i className="fas fa-check-circle text-green-500 mr-2"></i>Database Connected
+                        </div>
+                        <p className="text-xs text-gray-500 mb-2">Continuity and weekly analysis are enabled. Assignments are saved automatically.</p>
+                    </>
+                )}
+                {firebaseStatus === 'failed' && (
+                    <>
+                        <div className="text-sm font-bold text-red-700 mb-2 flex items-center">
+                            <i className="fas fa-times-circle text-red-500 mr-2"></i>Database Connection Failed
+                        </div>
+                        <p className="text-xs text-red-600 mb-2">Check config and security rules. Features like continuity & analysis are disabled.</p>
+                    </>
+                )}
               </div>
               <div className="p-4 bg-gray-50/75 border-t border-gray-200 space-y-3">
                 <button
                     onClick={handleDistribute}
-                    disabled={isDistributing || patients.length === 0}
+                    disabled={isDistributing || patients.length === 0 || firebaseStatus !== 'connected'}
                     className="w-full bg-teal-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 ease-in-out transform hover:scale-105 flex items-center justify-center space-x-2 shadow hover:shadow-lg"
                 >
                     {isDistributing ? (
@@ -111,7 +142,8 @@ const App: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setAnalysisModalOpen(true)}
-                  className="w-full bg-white text-gray-500 border border-gray-300 font-bold py-3 px-4 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all duration-300 ease-in-out flex items-center justify-center space-x-2"
+                  disabled={firebaseStatus !== 'connected'}
+                  className="w-full bg-white text-gray-500 border border-gray-300 font-bold py-3 px-4 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all duration-300 ease-in-out flex items-center justify-center space-x-2 disabled:bg-gray-200 disabled:cursor-not-allowed"
                 >
                   <i className="fas fa-chart-line"></i>
                   <span>View Weekly Analysis</span>
