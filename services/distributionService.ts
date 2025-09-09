@@ -131,11 +131,12 @@ export const distributeWorkload = (
         }
     }
     
-    // --- PRIORITY 2: Equity-First Distribution within STRICT GENDER GROUPS ---
-    const remainingPatients = Array.from(unassignedPatients);
+    // --- PRIORITY 2: Equity-First Distribution with cross-gender fallback ---
+    const remainingPatientsAfterContinuity = Array.from(unassignedPatients);
 
-    const femalePatients = remainingPatients.filter(p => p.gender === Gender.FEMALE);
-    const malePatients = remainingPatients.filter(p => p.gender === Gender.MALE);
+    // Pass 1: Strict Gender Matching
+    const femalePatients = remainingPatientsAfterContinuity.filter(p => p.gender === Gender.FEMALE);
+    const malePatients = remainingPatientsAfterContinuity.filter(p => p.gender === Gender.MALE);
 
     const femaleScholars = postedScholars.filter(s => s.gender === Gender.FEMALE);
     const maleScholars = postedScholars.filter(s => s.gender === Gender.MALE);
@@ -143,6 +144,21 @@ export const distributeWorkload = (
     // Run distribution for each gender group independently
     runDistributionForGroup(femalePatients, femaleScholars, assignments);
     runDistributionForGroup(malePatients, maleScholars, assignments);
+
+    // Pass 2: Cross-Gender Fallback for any remaining unassigned patients
+    const allAssignedPatientNames = new Set<string>();
+    assignments.forEach(assignment => {
+        assignment.procedures.forEach(p => allAssignedPatientNames.add(p.patientName));
+    });
+
+    const stillUnassignedPatients = remainingPatientsAfterContinuity.filter(
+        p => !allAssignedPatientNames.has(p.name)
+    );
+    
+    if (stillUnassignedPatients.length > 0) {
+        // Distribute remaining patients among ALL posted scholars
+        runDistributionForGroup(stillUnassignedPatients, postedScholars, assignments);
+    }
 
     // Finally, calculate the overall target points for each scholar for UI display purposes
     const totalProcedurePoints = patientsWithPoints.reduce((sum, p) => sum + p.totalPoints, 0);
