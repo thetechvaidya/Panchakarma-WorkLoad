@@ -7,13 +7,14 @@ import { getFirestore } from 'firebase/firestore';
 // FIX: Use `import.meta.env` to access environment variables in a Vite project.
 // `process.env` is for Node.js environments and is not available in the browser
 // by default in Vite, which can lead to build failures.
+// FIX: Cast `import.meta` to `any` to resolve TypeScript error "Property 'env' does not exist on type 'ImportMeta'".
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: (import.meta as any).env.VITE_FIREBASE_API_KEY,
+  authDomain: (import.meta as any).env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: (import.meta as any).env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: (import.meta as any).env.VITE_FIREBASE_APP_ID,
 };
 
 // A check to ensure the user has configured their environment variables.

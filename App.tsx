@@ -1,11 +1,8 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { collection, doc, onSnapshot, getDocs, writeBatch, setDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, query, orderBy, limit, where } from 'firebase/firestore';
-import type { Scholar, Patient, Assignment, HistoricalAssignmentRecord } from './types';
+import React, { useState, useCallback } from 'react';
+import type { Scholar, Patient, Assignment } from './types';
 import { INITIAL_SCHOLARS } from './constants';
 import { distributeWorkload } from './services/distributionService';
 import { generateExportText } from './services/exportService';
-import { getLatestAssignmentsForContinuity } from './services/historyService';
-import { db, isFirebaseConfigured } from './firebaseConfig';
 
 import Header from './components/Header';
 import ScholarSetup from './components/ScholarSetup';
@@ -16,124 +13,60 @@ import RulesDisplay from './components/RulesDisplay';
 import ProcedureGradeTable from './components/ProcedureGradeTable';
 import PatientInput from './components/PatientInput';
 import WeeklyAnalysisModal from './components/WeeklyAnalysisModal';
-import FirebaseSetup from './components/FirebaseSetup';
-
-const getISODateString = (date: Date): string => date.toISOString().split('T')[0];
-const todayStr = getISODateString(new Date());
 
 const App: React.FC = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [scholars, setScholars] = useState<Scholar[]>([]);
+  const [scholars, setScholars] = useState<Scholar[]>(INITIAL_SCHOLARS);
   const [assignments, setAssignments] = useState<Map<string, Assignment>>(new Map());
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isDistributing, setIsDistributing] = useState<boolean>(false);
   const [showResults, setShowResults] = useState<boolean>(false);
   const [isExportModalOpen, setExportModalOpen] = useState<boolean>(false);
   const [isAnalysisModalOpen, setAnalysisModalOpen] = useState<boolean>(false);
   const [exportText, setExportText] = useState<string>('');
   
-  // Seed initial scholars to Firestore if they don't exist
-  useEffect(() => {
-    if (!db) return;
-    const scholarsCol = collection(db, 'scholars');
-    getDocs(scholarsCol).then(snapshot => {
-      if (snapshot.empty) {
-        console.log("No scholars found in Firestore, seeding initial data...");
-        const batch = writeBatch(db);
-        INITIAL_SCHOLARS.forEach(scholar => {
-          const docRef = doc(db, 'scholars', scholar.id);
-          batch.set(docRef, scholar);
-        });
-        batch.commit();
-      }
-    });
-  }, []);
-
-  // Set up real-time listeners for scholars and today's patients/assignments
-  useEffect(() => {
-    if (!db) {
-        setIsLoading(false);
-        return;
-    }
-
-    // Listener for scholars
-    const scholarsUnsub = onSnapshot(collection(db, 'scholars'), (snapshot) => {
-      const scholarsData = snapshot.docs.map(doc => doc.data() as Scholar);
-      setScholars(scholarsData);
-      setIsLoading(false);
-    });
-
-    // Listener for today's data (patients and assignments)
-    const todayDocRef = doc(db, 'daily_data', todayStr);
-    const dailyUnsub = onSnapshot(todayDocRef, (doc) => {
-        if (doc.exists()) {
-            const data = doc.data() as HistoricalAssignmentRecord;
-            setPatients(data.patients || []);
-            if (data.assignments && data.assignments.length > 0) {
-              const assignmentsMap = new Map(data.assignments.map(a => [a.scholar.id, a]));
-              setAssignments(assignmentsMap);
-              setShowResults(true);
-            } else {
-              setAssignments(new Map());
-            }
-        } else {
-            // No data for today yet
-            setPatients([]);
-            setAssignments(new Map());
-        }
-    });
-
-    return () => {
-      scholarsUnsub();
-      dailyUnsub();
-    };
-  }, []);
-  
-  const handleAddPatient = useCallback(async (patientData: Omit<Patient, 'id' | 'isAttendant'>) => {
-      if (!db) return;
+  const handleAddPatient = useCallback((patientData: Omit<Patient, 'id' | 'isAttendant'>) => {
       const newPatient: Patient = {
         ...patientData,
         id: `patient-${patientData.name.trim().replace(/\s/g, '')}-${Date.now()}`,
         isAttendant: false,
       }
-      const todayDocRef = doc(db, 'daily_data', todayStr);
-      await setDoc(todayDocRef, { date: todayStr, patients: arrayUnion(newPatient) }, { merge: true });
+      setPatients(prev => [...prev, newPatient]);
   }, []);
 
-  const handleDeletePatient = useCallback(async (patientId: string) => {
-      if (!db) return;
-      const patientToDelete = patients.find(p => p.id === patientId);
-      if (patientToDelete) {
-        const todayDocRef = doc(db, 'daily_data', todayStr);
-        await updateDoc(todayDocRef, { patients: arrayRemove(patientToDelete) });
-      }
-  }, [patients]);
+  const handleDeletePatient = useCallback((patientId: string) => {
+      setPatients(prev => prev.filter(p => p.id !== patientId));
+  }, []);
   
-  const handleToggleScholarStatus = useCallback(async (scholarId: string, currentStatus: boolean) => {
-      if (!db) return;
-      const scholarDocRef = doc(db, 'scholars', scholarId);
-      await updateDoc(scholarDocRef, { isPosted: !currentStatus });
+  const handleToggleScholarStatus = useCallback((scholarId: string) => {
+      setScholars(prev => 
+        prev.map(scholar => 
+          scholar.id === scholarId 
+            ? { ...scholar, isPosted: !scholar.isPosted } 
+            : scholar
+        )
+      );
   }, []);
 
-  const handleDistribute = useCallback(async () => {
-    if (!db) return;
+  const handleDistribute = useCallback(() => {
     setIsDistributing(true);
     setShowResults(true);
     
-    try {
-        const previousAssignments = await getLatestAssignmentsForContinuity();
-        const newAssignments = distributeWorkload(patients, scholars, previousAssignments);
-        const newAssignmentsArray = Array.from(newAssignments.values());
+    // Simulate async operation for UI feedback
+    setTimeout(() => {
+        try {
+            // NOTE: Continuity feature is disabled in offline mode as it requires fetching historical data.
+            const previousAssignments = new Map<string, string>();
+            const newAssignments = distributeWorkload(patients, scholars, previousAssignments);
+            setAssignments(newAssignments);
+            
+        } catch(error) {
+            console.error("Error during workload distribution:", error);
+            alert("An error occurred. Please check the console for details.");
+        } finally {
+            setIsDistributing(false);
+        }
+    }, 500); // Small delay to show loading state spinner
 
-        const todayDocRef = doc(db, 'daily_data', todayStr);
-        await setDoc(todayDocRef, { date: todayStr, assignments: newAssignmentsArray }, { merge: true });
-        
-    } catch(error) {
-        console.error("Error during workload distribution:", error);
-        alert("An error occurred. Please check the console for details.");
-    } finally {
-        setIsDistributing(false);
-    }
   }, [patients, scholars]);
   
   const handleExport = () => {
@@ -141,21 +74,6 @@ const App: React.FC = () => {
     setExportText(text);
     setExportModalOpen(true);
   };
-
-  if (!isFirebaseConfigured) {
-    return <FirebaseSetup />;
-  }
-
-  if (isLoading) {
-      return (
-        <div className="flex items-center justify-center h-screen">
-          <div className="text-center">
-              <i className="fas fa-spinner fa-spin text-4xl text-teal-600"></i>
-              <p className="mt-4 text-lg text-gray-600">Connecting to the department server...</p>
-          </div>
-        </div>
-      );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -168,9 +86,9 @@ const App: React.FC = () => {
             <div className="bg-white rounded-xl shadow-md border border-gray-200">
               <div className="p-6">
                   <div className="text-sm font-bold text-gray-700 mb-2 flex items-center">
-                      <i className="fas fa-user-clock text-green-600 mr-2"></i>Continuity is now Automatic
+                      <i className="fas fa-database text-orange-500 mr-2"></i>Database Disconnected
                   </div>
-                  <p className="text-xs text-gray-500 mb-2">The system will automatically check yesterday's assignments to maintain patient-scholar continuity. The manual list is no longer needed.</p>
+                  <p className="text-xs text-gray-500 mb-2">The app is running in offline mode. Continuity and weekly analysis features are disabled. Data will not be saved.</p>
               </div>
               <div className="p-4 bg-gray-50/75 border-t border-gray-200 space-y-3">
                 <button
@@ -191,8 +109,8 @@ const App: React.FC = () => {
                     )}
                 </button>
                 <button
-                  onClick={() => setAnalysisModalOpen(true)}
-                  className="w-full bg-white text-teal-600 border border-teal-600 font-bold py-3 px-4 rounded-lg hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-all duration-300 ease-in-out flex items-center justify-center space-x-2"
+                  onClick={() => alert('Weekly Analysis is disabled in offline mode as it requires historical data from the database.')}
+                  className="w-full bg-white text-gray-500 border border-gray-300 font-bold py-3 px-4 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all duration-300 ease-in-out flex items-center justify-center space-x-2"
                 >
                   <i className="fas fa-chart-line"></i>
                   <span>View Weekly Analysis</span>
@@ -200,7 +118,7 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <ScholarSetup scholars={scholars} onToggleScholarStatus={handleToggleScholarStatus} />
+            <ScholarSetup scholars={scholars} onToggleScholarStatus={(id) => handleToggleScholarStatus(id)} />
             <ProcedureGradeTable />
             <RulesDisplay />
           </div>
