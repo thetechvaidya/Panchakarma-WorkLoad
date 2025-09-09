@@ -19,26 +19,27 @@ export const INITIAL_SCHOLARS: Scholar[] = [
 ];
 
 export const PROCEDURE_GRADES: Record<string, ProcedureGradeInfo> = {
-  // Grade 1 - High intensity (3 points)
-  'ssps': { grade: 1, points: 3, name: 'Shastik Shali Pinda Swedana', code: 'SSPS' },
-  'shashik-shali pinda swedana': { grade: 1, points: 3, name: 'Shastik Shali Pinda Swedana', code: 'SSPS' },
-  'shastika shali pinda sweda sarvanga': { grade: 1, points: 3, name: 'Shastik Shali Pinda Swedana', code: 'SSPS' },
-  'jalaukavacharana': { grade: 1, points: 3, name: 'Jalaukavacharana', code: 'JALAU' },
-  'vamana': { grade: 1, points: 3, name: 'Vamana (incl. Abhyanga & Swedana)', code: 'VAMANA' },
-  'nirhua basti': { grade: 1, points: 3, name: 'Karma Basti', code: 'KARMA_BASTI' },
-  'karma basti': { grade: 1, points: 3, name: 'Karma Basti', code: 'KARMA_BASTI' },
-  'nb': { grade: 1, points: 3, name: 'Karma Basti', code: 'KARMA_BASTI' },
-  'saravang abhyang + potali': { grade: 1, points: 3, name: 'Sarvanga Abhyanga & Potali Swedana', code: 'SAR_AB_POT' },
-  'shiro-basti': { grade: 1, points: 3, name: 'Shiro Basti', code: 'SHIRO_BASTI' },
-  'pizhichil': { grade: 1, points: 3, name: 'Pizhichil / Sarvanga Dhara', code: 'SAR_DHARA' },
-  'sarvang parikshek': { grade: 1, points: 3, name: 'Pizhichil / Sarvanga Dhara', code: 'SAR_DHARA' },
-  'sarvanag dhara': { grade: 1, points: 3, name: 'Pizhichil / Sarvanga Dhara', code: 'SAR_DHARA' },
-  'sarvanga dhara': { grade: 1, points: 3, name: 'Pizhichil / Sarvanga Dhara', code: 'SAR_DHARA' },
-  'sarvang udwartana': { grade: 1, points: 3, name: 'Sarvanga Udwartana', code: 'UDWARTANA' },
-  'takradhara': { grade: 1, points: 3, name: 'Takradhara', code: 'TAKRADHARA' },
+  // Grade 3 - High intensity (3 points)
+  'ssps': { grade: 3, points: 3, name: 'Shastik Shali Pinda Swedana', code: 'SSPS' },
+  'shashik-shali pinda swedana': { grade: 3, points: 3, name: 'Shastik Shali Pinda Swedana', code: 'SSPS' },
+  'shastika shali pinda sweda sarvanga': { grade: 3, points: 3, name: 'Shastik Shali Pinda Swedana', code: 'SSPS' },
+  'jalaukavacharana': { grade: 3, points: 3, name: 'Jalaukavacharana', code: 'JALAU' },
+  'vamana': { grade: 3, points: 3, name: 'Vamana (incl. Abhyanga & Swedana)', code: 'VAMANA' },
+  'nirhua basti': { grade: 3, points: 3, name: 'Karma Basti', code: 'KARMA_BASTI' },
+  'karma basti': { grade: 3, points: 3, name: 'Karma Basti', code: 'KARMA_BASTI' },
+  'nb': { grade: 3, points: 3, name: 'Karma Basti', code: 'KARMA_BASTI' },
+  'shiro-basti': { grade: 3, points: 3, name: 'Shiro Basti', code: 'SHIRO_BASTI' },
+  'pizhichil': { grade: 3, points: 3, name: 'Pizhichil / Sarvanga Dhara', code: 'SAR_DHARA' },
+  'sarvang parikshek': { grade: 3, points: 3, name: 'Pizhichil / Sarvanga Dhara', code: 'SAR_DHARA' },
+  'sarvanag dhara': { grade: 3, points: 3, name: 'Pizhichil / Sarvanga Dhara', code: 'SAR_DHARA' },
+  'sarvanga dhara': { grade: 3, points: 3, name: 'Pizhichil / Sarvanga Dhara', code: 'SAR_DHARA' },
+  'sarvang udwartana': { grade: 3, points: 3, name: 'Sarvanga Udwartana', code: 'UDWARTANA' },
+  'takradhara': { grade: 3, points: 3, name: 'Takradhara', code: 'TAKRADHARA' },
+  'sarvang patra pinda swedana': { grade: 3, points: 3, name: 'Sarvang Patra Pinda Swedana', code: 'SAR_PPS' },
+  'sarvang jambhira pinda swedana': { grade: 3, points: 3, name: 'Sarvang Jambhira Pinda Swedana', code: 'SAR_JPS' },
 
   // Grade 2 - Medium intensity (2 points)
-  'virechana': { grade: 2, points: 2, name: 'Virechana', code: 'VIRECHANA' },
+  'virechana': { grade: 2, points: 2, name: 'Virechan ( incl. Abhyanga & Swedana)', code: 'VIRECHANA' },
   'sarvanga ruksha sweda': { grade: 2, points: 2, name: 'Sarvanga Ruksha Sweda', code: 'SAR_RUKSHA' },
   'shiroabhyanga': { grade: 2, points: 2, name: 'Shiroabhyanga', code: 'SHIRO_AB' },
   'janu-basti': { grade: 2, points: 2, name: 'Janu Basti', code: 'JANU_BASTI' },
@@ -57,57 +58,46 @@ export const PROCEDURE_GRADES: Record<string, ProcedureGradeInfo> = {
   'parisheka': { grade: 2, points: 2, name: 'Sthanika Dhara (Parisheka)', code: 'STH_DHARA' },
   'janu parisheka': { grade: 2, points: 2, name: 'Sthanika Dhara (Parisheka)', code: 'STH_DHARA' },
   'shirodhara': { grade: 2, points: 2, name: 'Shirodhara', code: 'SHIRODHARA' },
+  'sthanik patra pinda swedana': { grade: 2, points: 2, name: 'Sthanik Patra Pinda Swedana', code: 'STH_PPS' },
+  'sthanik jambhira pinda swedana': { grade: 2, points: 2, name: 'Sthanik Jambhira Pinda Swedana', code: 'STH_JPS' },
   
-  // Grade 3 - Low intensity (1 point)
-  'sthanik ruksha swedana': { grade: 3, points: 1, name: 'Sthanika Ruksha Swedana', code: 'STH_RUKSHA' },
-  'nasya': { grade: 3, points: 1, name: 'Nasya', code: 'NASYA' },
-  'anuvasan basti': { grade: 3, points: 1, name: 'Anuvasana Basti', code: 'ANU_BASTI' },
-  'ab': { grade: 3, points: 1, name: 'Anuvasana Basti', code: 'ANU_BASTI' },
-  'matra basti': { grade: 3, points: 1, name: 'Matra Basti', code: 'MATRA_BASTI' },
-  'sarvanga vaspa sweda': { grade: 3, points: 1, name: 'Sarvanga Vaspa Sweda', code: 'SAR_VASPA' },
-  'sthanika abhyanga': { grade: 3, points: 1, name: 'Sthanika Abhyanga', code: 'STH_AB' },
-  'shiro-pichu': { grade: 3, points: 1, name: 'Shiro Pichu', code: 'SHIRO_PICHU' },
-  'agni karma': { grade: 3, points: 1, name: 'Agni Karma', code: 'AGNI_KARMA' },
-  'siravedha': { grade: 3, points: 1, name: 'Siravedha', code: 'SIRAVEDHA' },
-  'sthanika abhyanga swedana': { grade: 3, points: 1, name: 'Sthanika Abhyanga & Swedana', code: 'STH_AB_SW' },
-  'abhyanga swedan': { grade: 3, points: 1, name: 'Abhyanga & Swedana', code: 'AB_SW' },
-  'abhyanga': { grade: 3, points: 1, name: 'Abhyanga', code: 'ABHYANGA' },
-  'pichu': { grade: 3, points: 1, name: 'Pichu', code: 'PICHU' },
-  'sarvang swedan': { grade: 3, points: 1, name: 'Sarvanga Swedana', code: 'SAR_SW' },
-  'sarvanga sweda': { grade: 3, points: 1, name: 'Sarvanga Swedana', code: 'SAR_SW' },
-  'lepa': { grade: 3, points: 1, name: 'Lepa', code: 'LEPA' },
-  'udar lepa': { grade: 3, points: 1, name: 'Udar Lepa', code: 'UDAR_LEPA' },
-  'karnapurana': { grade: 3, points: 1, name: 'Karnapurana', code: 'KARNAPURANA' },
-  'tarpana': { grade: 3, points: 1, name: 'Tarpana', code: 'TARPANA' },
-  'vesthana': { grade: 3, points: 1, name: 'Vesthana', code: 'VESTHANA' },
-  'avgah sweda': { grade: 3, points: 1, name: 'Avagaha Swedana', code: 'AVAGAHA' },
-  'nadi swedana': { grade: 3, points: 1, name: 'Nadi Swedana', code: 'NADI_SW' },
+  // Grade 1 - Low intensity (1 point)
+  'sthanik ruksha swedana': { grade: 1, points: 1, name: 'Sthanika Ruksha Swedana', code: 'STH_RUKSHA' },
+  'nasya': { grade: 1, points: 1, name: 'Nasya', code: 'NASYA' },
+  'anuvasan basti': { grade: 1, points: 1, name: 'Anuvasana Basti', code: 'ANU_BASTI' },
+  'ab': { grade: 1, points: 1, name: 'Anuvasana Basti', code: 'ANU_BASTI' },
+  'matra basti': { grade: 1, points: 1, name: 'Matra Basti', code: 'MATRA_BASTI' },
+  'sarvanga vaspa sweda': { grade: 1, points: 1, name: 'Sarvanga Vaspa Sweda', code: 'SAR_VASPA' },
+  'sthanika abhyanga': { grade: 1, points: 1, name: 'Sthanika Abhyanga', code: 'STH_AB' },
+  'shiro-pichu': { grade: 1, points: 1, name: 'Shiro Pichu', code: 'SHIRO_PICHU' },
+  'agni karma': { grade: 1, points: 1, name: 'Agni Karma', code: 'AGNI_KARMA' },
+  'siravedha': { grade: 1, points: 1, name: 'Siravedha', code: 'SIRAVEDHA' },
+  'sthanika abhyanga swedana': { grade: 1, points: 1, name: 'Sthanika Abhyanga & Swedana', code: 'STH_AB_SW' },
+  'pichu': { grade: 1, points: 1, name: 'Pichu', code: 'PICHU' },
+  'sarvang swedan': { grade: 1, points: 1, name: 'Sarvanga Swedana', code: 'SAR_SW' },
+  'sarvanga sweda': { grade: 1, points: 1, name: 'Sarvanga Swedana', code: 'SAR_SW' },
+  'lepa': { grade: 1, points: 1, name: 'Lepa', code: 'LEPA' },
+  'udar lepa': { grade: 1, points: 1, name: 'Udar Lepa', code: 'UDAR_LEPA' },
+  'karnapurana': { grade: 1, points: 1, name: 'Karnapurana', code: 'KARNAPURANA' },
+  'tarpana': { grade: 1, points: 1, name: 'Tarpana', code: 'TARPANA' },
+  'vesthana': { grade: 1, points: 1, name: 'Vesthana', code: 'VESTHANA' },
+  'avgah sweda': { grade: 1, points: 1, name: 'Avagaha Swedana', code: 'AVAGAHA' },
+  'nadi swedana': { grade: 1, points: 1, name: 'Nadi Swedana', code: 'NADI_SW' },
 };
 
 // Sort keys by length descending to match longer phrases first
 export const SORTED_PROCEDURE_KEYS = Object.keys(PROCEDURE_GRADES).sort((a, b) => b.length - a.length);
+
+const uniqueProcedureMap = new Map<string, ProcedureGradeInfo>();
+Object.values(PROCEDURE_GRADES).forEach(proc => {
+  if (!uniqueProcedureMap.has(proc.name)) {
+    uniqueProcedureMap.set(proc.name, proc);
+  }
+});
+export const UNIQUE_PROCEDURES_INFO: ProcedureGradeInfo[] = Array.from(uniqueProcedureMap.values()).sort((a, b) => a.name.localeCompare(b.name));
 
 export const YEAR_WEIGHTS: Record<number, number> = {
   1: 21, // 1st Year Scholars
   2: 15, // 2nd Year Scholars
   3: 7,  // 3rd Year Scholars
 };
-
-
-export const DEFAULT_FEMALE_INPUT_TEXT = `1) Champa - 16th PPS+ 8th AB (Vatsmayantaka ghrita + Amritadi taila)+ 13th kati basti with Sahacharadi oil + 13th pichu with Sahacharadi oil over rt toe + *fasting and pps data
-4) Parveen Bano- 4th janu basti with murchhita Tila taila+ 3rd AB  
-5) Chandra devi - 11th PPS + 5th NB + 7th sarvanga sweda
-6) Chandrawati - 8th AB + ruksha swed with cotton over painfull joint
-7) Roshni- Abhyanga Swedana over Kati and udar pradesh + 5th AB
-8) Nishu - 3rd Sarvanga Abhyanga Swedana 
-9) Parveen- 10th Janu parisheka also on popliteal Fossa with balashwagandhadi taila + 6th AB 
-10) saira khatoon- 3rd NB  + 4th janu basti with murchhita Tila taila + nadi Swedana over Manya Kati pradesh
-11) Radha - 4th AB + 6th sarvanga swedan
-12) vimlesh -4th AB Ksheerabala taila+ 7th JB with murchit tila taila 
-13) shanti - 4th AB  + 6th sarvanga swedan
-14) Shashi- 4thJPS over cervical and b/l shoulder joint+ 5th Manya basti+ 5th matra basti with sahachardi taila`;
-
-export const DEFAULT_MALE_INPUT_TEXT = `2) omprakash(M)- 4th AB +8th kati basti with murchit tila taila 
-3) Swami(M) -10th Sarvanga swedana + 7th AB with valiya amrutadi taila + 14th PPS over kati and hip joint
-4) Narendra(M) -9th Udar lepa + 8th avgah sweda
-5) Virender(M) -3rd AB + kati and udar pradesh abhyanga Swedan`;

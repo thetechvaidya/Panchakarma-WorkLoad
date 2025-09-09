@@ -3,6 +3,7 @@
 
 
 
+
 export enum Gender {
   MALE = 'M',
   FEMALE = 'F',
@@ -50,4 +51,9 @@ export interface Assignment {
   procedures: AssignedProcedure[];
   totalPoints: number;
   targetPoints: number;
+}
+
+export interface HistoricalAssignmentRecord {
+  date: string; // ISO string 'YYYY-MM-DD'
+  assignments: Assignment[];
 }

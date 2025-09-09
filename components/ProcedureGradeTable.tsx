@@ -1,21 +1,11 @@
 import React, { useMemo } from 'react';
-import { PROCEDURE_GRADES } from '../constants';
+import { UNIQUE_PROCEDURES_INFO } from '../constants';
 import type { ProcedureGradeInfo } from '../types';
 
 const ProcedureGradeTable: React.FC = () => {
   const proceduresByGrade = useMemo(() => {
-    const procedureMap = new Map<string, ProcedureGradeInfo>();
-    // Create a unique list of procedures based on their full name
-    Object.values(PROCEDURE_GRADES).forEach(proc => {
-      if (!procedureMap.has(proc.name)) {
-        procedureMap.set(proc.name, proc);
-      }
-    });
-
-    const uniqueProcedures = Array.from(procedureMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-
     // Group unique procedures by grade
-    return uniqueProcedures.reduce((acc, proc) => {
+    return UNIQUE_PROCEDURES_INFO.reduce((acc, proc) => {
       (acc[proc.grade] = acc[proc.grade] || []).push(proc);
       return acc;
     }, {} as Record<number, ProcedureGradeInfo[]>);

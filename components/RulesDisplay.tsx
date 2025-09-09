@@ -56,6 +56,22 @@ const RulesDisplay: React.FC = () => {
                 <li><strong className="font-semibold text-gray-800">Repeat Until Done:</strong> This process repeats for each gender group until all procedures are assigned, ensuring the workload is built up evenly and safely.</li>
             </ol>
         </RuleItem>
+        
+        <div className="border-t my-4"></div>
+
+        <RuleItem title="Rule 4: High Patient Load Adjustment" icon="fa-arrow-trend-up">
+            <p>
+                <strong>Disclaimer:</strong> In the event of an unusually high number of patients, the workload points for each PG scholar may be increased by approximately 25% across all years to reflect the increased demand.
+            </p>
+        </RuleItem>
+
+        <div className="border-t my-4"></div>
+
+        <RuleItem title="Special Note: HOD/Consultant Discretion" icon="fa-user-shield">
+             <p>
+                The final assignment for any patient deemed 'special' (e.g., VIPs, medically complex cases) remains at the discretion of the HOD/Consultant. These decisions may override the automated distribution.
+            </p>
+        </RuleItem>
     </div>
   );
 };

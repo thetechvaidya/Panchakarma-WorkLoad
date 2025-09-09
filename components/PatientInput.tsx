@@ -1,0 +1,160 @@
+import React, { useState, useMemo } from 'react';
+import type { Patient, Procedure, ProcedureGradeInfo } from '../types';
+import { Gender } from '../types';
+import { UNIQUE_PROCEDURES_INFO } from '../constants';
+
+interface PatientInputProps {
+  patients: Patient[];
+  setPatients: React.Dispatch<React.SetStateAction<Patient[]>>;
+}
+
+const PatientInput: React.FC<PatientInputProps> = ({ patients, setPatients }) => {
+  const [name, setName] = useState('');
+  const [gender, setGender] = useState<Gender>(Gender.FEMALE);
+  const [currentProcedures, setCurrentProcedures] = useState<Procedure[]>([]);
+  const [procedureFilter, setProcedureFilter] = useState('');
+
+  const handleProcedureToggle = (procedureInfo: ProcedureGradeInfo, isChecked: boolean) => {
+    if (isChecked) {
+      const newProcedure: Procedure = {
+        ...procedureInfo,
+        id: `${procedureInfo.code}-${Date.now()}`
+      };
+      setCurrentProcedures(prev => [...prev, newProcedure].sort((a,b) => a.name.localeCompare(b.name)));
+    } else {
+      setCurrentProcedures(prev => prev.filter(p => p.code !== procedureInfo.code));
+    }
+  };
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || currentProcedures.length === 0) {
+      alert("Please provide a patient name and at least one procedure.");
+      return;
+    }
+    const newPatient: Patient = {
+      id: `patient-${name.trim().replace(/\s/g, '')}-${Date.now()}`,
+      name: name.trim(),
+      gender,
+      procedures: currentProcedures,
+      isAttendant: false,
+    };
+    setPatients(prev => [...prev, newPatient].sort((a,b) => a.name.localeCompare(b.name)));
+
+    // Reset form
+    setName('');
+    setGender(Gender.FEMALE);
+    setCurrentProcedures([]);
+    setProcedureFilter('');
+  };
+
+  const handleDeletePatient = (patientId: string) => {
+    setPatients(prev => prev.filter(p => p.id !== patientId));
+  };
+
+  const isProcedureSelected = (code: string) => currentProcedures.some(p => p.code === code);
+
+  const filteredProcedures = useMemo(() => {
+    if (!procedureFilter) {
+      return UNIQUE_PROCEDURES_INFO;
+    }
+    return UNIQUE_PROCEDURES_INFO.filter(proc =>
+      proc.name.toLowerCase().includes(procedureFilter.toLowerCase())
+    );
+  }, [procedureFilter]);
+
+
+  return (
+    <div className="bg-white rounded-xl shadow-md border border-gray-200">
+        <div className="p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Add Patient & Procedures</h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                    <label htmlFor="patientName" className="block text-sm font-bold text-gray-700 mb-1">Patient Name</label>
+                    <input type="text" id="patientName" value={name} onChange={e => setName(e.target.value)} className="w-full p-2 border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500" required />
+                </div>
+                <div>
+                    <span className="block text-sm font-bold text-gray-700 mb-2">Gender</span>
+                    <div className="flex gap-4">
+                        <label className="flex items-center"><input type="radio" name="gender" value={Gender.FEMALE} checked={gender === Gender.FEMALE} onChange={() => setGender(Gender.FEMALE)} className="h-4 w-4 text-teal-600 focus:ring-teal-500" /> <span className="ml-2 text-sm text-gray-700">Female</span></label>
+                        <label className="flex items-center"><input type="radio" name="gender" value={Gender.MALE} checked={gender === Gender.MALE} onChange={() => setGender(Gender.MALE)} className="h-4 w-4 text-teal-600 focus:ring-teal-500" /> <span className="ml-2 text-sm text-gray-700">Male</span></label>
+                    </div>
+                </div>
+                
+                <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">
+                        Procedures ({currentProcedures.length} selected)
+                    </label>
+                    <div className="relative mb-2">
+                        <input
+                            type="text"
+                            placeholder="Search procedures..."
+                            value={procedureFilter}
+                            onChange={e => setProcedureFilter(e.target.value)}
+                            className="w-full p-2 pl-9 border border-gray-300 rounded-lg shadow-inner focus:ring-2 focus:ring-teal-500"
+                            aria-label="Filter procedures"
+                        />
+                        <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-2 space-y-1 bg-gray-50/75 shadow-inner">
+                        {filteredProcedures.length > 0 ? (
+                          filteredProcedures.map(procInfo => (
+                              <label key={procInfo.code} className="flex items-center p-2 rounded-md hover:bg-teal-50 transition-colors cursor-pointer">
+                                  <input
+                                      type="checkbox"
+                                      checked={isProcedureSelected(procInfo.code)}
+                                      onChange={e => handleProcedureToggle(procInfo, e.target.checked)}
+                                      className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                                  />
+                                  <span className="ml-3 text-sm text-gray-800 flex-grow">{procInfo.name}</span>
+                                  <span className="text-xs font-semibold text-gray-500">{procInfo.points} pts</span>
+                              </label>
+                          ))
+                        ) : (
+                          <div className="text-center text-gray-500 py-4">
+                            <p>No procedures found.</p>
+                          </div>
+                        )}
+                    </div>
+                </div>
+                
+                <button type="submit" className="w-full bg-teal-600 text-white font-bold py-2.5 px-4 rounded-lg hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center" disabled={!name.trim() || currentProcedures.length === 0}>
+                    <i className="fas fa-plus-circle mr-2"></i>Add Patient to List
+                </button>
+            </form>
+        </div>
+        
+        <div className="border-t border-gray-200 bg-gray-50/50 p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Today's Patient List ({patients.length})</h3>
+            {patients.length > 0 ? (
+                <ul className="space-y-3 max-h-[26rem] overflow-y-auto pr-2 -mr-2">
+                    {patients.map(patient => (
+                        <li key={patient.id} className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="font-bold text-gray-800 flex items-center">
+                                        <i className={`w-4 text-center fas ${patient.gender === Gender.MALE ? 'fa-mars text-blue-500' : 'fa-venus text-pink-500'} mr-2`}></i>
+                                        {patient.name}
+                                    </p>
+                                    <ul className="mt-2 space-y-1 text-sm text-gray-600 pl-6">
+                                        {patient.procedures.map(proc => <li key={proc.id} className="list-disc list-inside">{proc.name}</li>)}
+                                    </ul>
+                                </div>
+                                <button onClick={() => handleDeletePatient(patient.id)} className="text-gray-400 hover:text-red-600 font-bold py-1 px-2 rounded-lg text-sm" aria-label={`Delete patient ${patient.name}`}>
+                                    <i className="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            ) : (
+                <div className="text-center text-gray-500 text-sm py-8 bg-slate-100 rounded-lg">
+                    <p>No patients have been added yet.</p>
+                </div>
+            )}
+        </div>
+    </div>
+  )
+}
+
+export default PatientInput;
