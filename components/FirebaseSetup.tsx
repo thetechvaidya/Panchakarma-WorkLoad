@@ -8,18 +8,18 @@ const FirebaseSetup: React.FC = () => (
       </div>
       <h2 className="text-2xl font-extrabold text-gray-800 mb-4">Firebase Configuration Missing</h2>
       <p className="text-gray-600 mb-6">
-        This application requires a Firebase backend to store and sync data across devices. To enable this, you need to set up a free Firebase project and add your project's configuration keys as environment variables in your hosting provider (like Vercel).
+        This application requires a Firebase backend to store and sync data. To enable this, you need to set up a free Firebase project and add your project's configuration keys as environment variables.
       </p>
       <div className="text-left bg-gray-50 p-4 rounded-lg border text-sm font-mono text-gray-700 space-y-1">
-        <p>VITE_FIREBASE_API_KEY="your-api-key"</p>
-        <p>VITE_FIREBASE_AUTH_DOMAIN="your-auth-domain"</p>
-        <p>VITE_FIREBASE_PROJECT_ID="your-project-id"</p>
-        <p>VITE_FIREBASE_STORAGE_BUCKET="your-storage-bucket"</p>
-        <p>VITE_FIREBASE_MESSAGING_SENDER_ID="your-sender-id"</p>
-        <p>VITE_FIREBASE_APP_ID="your-app-id"</p>
+        <p>FIREBASE_API_KEY="your-api-key"</p>
+        <p>FIREBASE_AUTH_DOMAIN="your-auth-domain"</p>
+        <p>FIREBASE_PROJECT_ID="your-project-id"</p>
+        <p>FIREBASE_STORAGE_BUCKET="your-storage-bucket"</p>
+        <p>FIREBASE_MESSAGING_SENDER_ID="your-sender-id"</p>
+        <p>FIREBASE_APP_ID="your-app-id"</p>
       </div>
        <p className="text-xs text-gray-500 mt-4">
-        You can find these values in your Firebase project settings under "General". After adding these variables, you will need to redeploy your application.
+        You can find these values in your Firebase project settings under "General". After adding these variables, the application should work correctly.
       </p>
     </div>
   </div>
