@@ -1,86 +1,52 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { initializeApp, type FirebaseApp } from 'firebase/app';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 
-// Firebase configuration - works automatically with Vercel environment variables
+// Firebase configuration
+// Uses VITE_ environment variables for Vercel deployment.
+// Hardcoded fallbacks for sensitive keys have been removed to prevent security risks.
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyA1m3GkHXp3DOirBgZuvIoEV2QkLuSsw_E",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "panchakarma-workload.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "panchakarma-workload",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "panchakarma-workload.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "374465789655",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:374465789655:web:0c8627195040917274fa92"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  // The storage bucket URL has been corrected. A fallback is used to ensure the correct
+  // URL is used if the environment variable is not set.
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "panchakarma-workload.appspot.com",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Initialize Firebase with non-blocking approach
-let app;
-let db;
-let isInitialized = false;
-let isConnected = false;
+let app: FirebaseApp | null = null;
+let db: Firestore | null = null;
 
-const initializeFirebase = async () => {
-  try {
-    app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
-    isInitialized = true;
-    console.log("✅ Firebase initialized successfully");
-    
-    // Test connection asynchronously without blocking
-    try {
-      const { enableNetwork } = await import('firebase/firestore');
-      await Promise.race([
-        enableNetwork(db),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-      ]);
-      isConnected = true;
-      console.log("✅ Firebase Firestore connected successfully");
-    } catch (error) {
-      console.warn("⚠️ Firebase connection timeout or error:", error);
-      isConnected = false;
+/**
+ * Initializes Firebase synchronously.
+ * This function should be called before any Firebase services are used.
+ * It ensures that the app is initialized and prevents race conditions.
+ *
+ * @returns An object containing the initialized `app` and `db` instances.
+ *          Returns { app: null, db: null } if initialization fails.
+ */
+export const initFirebase = () => {
+  if (!app) {
+    // Check for essential Firebase config variables.
+    // The app cannot function correctly without these.
+    if (!firebaseConfig.projectId || !firebaseConfig.apiKey) {
+      console.error(
+        "❌ Critical Firebase environment variables are missing (VITE_FIREBASE_PROJECT_ID or VITE_FIREBASE_API_KEY)." +
+        "Firebase cannot be initialized. Please set these in your Vercel project settings."
+      );
+      return { app: null, db: null };
     }
-    
-  } catch (error) {
-    console.error("❌ Firebase initialization failed:", error);
-    console.log("📊 Running in offline mode - data will not persist");
-    isInitialized = false;
-    isConnected = false;
+
+    try {
+      app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      console.log("✅ Firebase initialized successfully.");
+    } catch (error) {
+      console.error("❌ Firebase initialization failed:", error);
+      return { app: null, db: null };
+    }
   }
-};
 
-// Initialize Firebase asynchronously without blocking the UI
-initializeFirebase();
-
-// Export connection status functions
-export const isFirebaseInitialized = () => isInitialized;
-export const isFirebaseConnected = () => isConnected;
-
-// Export Firebase instances
-export { db, app };
-
-// Real-time connection status with timeout
-export const checkFirebaseConnection = async (): Promise<{ connected: boolean; error?: string }> => {
-  if (!db) {
-    return { connected: false, error: "Firebase not initialized" };
-  }
-  
-  try {
-    const { enableNetwork, collection, getDocs, limit, query } = await import('firebase/firestore');
-    
-    // Quick connection test with timeout
-    await Promise.race([
-      getDocs(query(collection(db, 'connection_test'), limit(1))),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), 3000))
-    ]);
-    
-    isConnected = true;
-    return { connected: true };
-  } catch (error) {
-    isConnected = false;
-    return { connected: false, error: error.message };
-  }
-};
-
-// Force offline mode for testing
-export const forceOfflineMode = () => {
-  isConnected = false;
-  console.log("🔄 Forced offline mode enabled");
+  return { app, db };
 };

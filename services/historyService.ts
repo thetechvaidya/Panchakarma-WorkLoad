@@ -1,7 +1,8 @@
 import type { HistoricalAssignmentRecord, Assignment, Patient, Scholar } from '../types';
-import { db } from '../firebaseConfig';
+import { initFirebase } from '../firebaseConfig';
 import { collection, query, where, getDocs, orderBy, limit, doc, setDoc, getDoc } from 'firebase/firestore';
 
+const { db } = initFirebase();
 const HISTORY_DAYS = 7; 
 
 // Utility to get date string in YYYY-MM-DD format

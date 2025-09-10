@@ -17,7 +17,7 @@ import WeeklyAnalysisModal from './components/WeeklyAnalysisModal';
 import DateNavigator from './components/DateNavigator';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import IntelligentInsights from './components/IntelligentInsights';
-import { isFirebaseConnected, checkFirebaseConnection } from './firebaseConfig';
+import { initFirebase } from './firebaseConfig';
 
 
 const getISODateString = (date: Date): string => date.toISOString().split('T')[0];
@@ -43,26 +43,14 @@ const App: React.FC = () => {
   const [showAnalytics, setShowAnalytics] = useState<boolean>(false);
   const [showInsights, setShowInsights] = useState<boolean>(false);
   const [exportText, setExportText] = useState<string>('');
-  const [firebaseStatus, setFirebaseStatus] = useState<{ connected: boolean; checking: boolean }>({ 
-    connected: false, 
-    checking: true 
-  });
+
+  // Initialize Firebase and get the db instance.
+  const { db } = initFirebase();
+
+  // The connection status is now determined synchronously.
+  const isFirebaseConnected = db !== null;
 
   const isToday = useMemo(() => isSameDay(selectedDate, new Date()), [selectedDate]);
-  
-  // Check Firebase connection status periodically
-  useEffect(() => {
-    const checkConnection = async () => {
-      setFirebaseStatus(prev => ({ ...prev, checking: true }));
-      const status = await checkFirebaseConnection();
-      setFirebaseStatus({ connected: status.connected, checking: false });
-    };
-    
-    checkConnection();
-    // Check every 30 seconds
-    const interval = setInterval(checkConnection, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     const loadDataForDate = async () => {
@@ -183,24 +171,9 @@ const App: React.FC = () => {
       <main className="container mx-auto p-4 md:p-6 flex-grow">
         <DateNavigator selectedDate={selectedDate} onDateChange={setSelectedDate} isLoading={isLoading} />
         
-        {/* Enhanced Firebase Connection Status */}
+        {/* Firebase Connection Status */}
         <div className="mb-6">
-          {firebaseStatus.checking && (
-            <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg mb-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <i className="fas fa-spinner fa-spin text-blue-400"></i>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-blue-700">
-                    <strong>Checking Firebase connection...</strong> Please wait.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {!firebaseStatus.checking && !firebaseStatus.connected && (
+          {!isFirebaseConnected ? (
             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
               <div className="flex">
                 <div className="flex-shrink-0">
@@ -208,15 +181,14 @@ const App: React.FC = () => {
                 </div>
                 <div className="ml-3">
                   <p className="text-sm text-yellow-700">
-                    <strong>Running in offline mode.</strong> Data will not be saved to Firebase. 
-                    <br />The app is fully functional - you can add patients and distribute workload locally.
+                    <strong>Running in offline mode.</strong> Data will not be saved to Firebase.
+                    <br />
+                    The app is fully functional - you can add patients and distribute workload locally.
                   </p>
                 </div>
               </div>
             </div>
-          )}
-          
-          {!firebaseStatus.checking && firebaseStatus.connected && (
+          ) : (
             <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-lg">
               <div className="flex">
                 <div className="flex-shrink-0">
