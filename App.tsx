@@ -17,9 +17,6 @@ import WeeklyAnalysisModal from './components/WeeklyAnalysisModal';
 import DateNavigator from './components/DateNavigator';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import IntelligentInsights from './components/IntelligentInsights';
-import { initFirebase } from './firebaseConfig';
-
-
 const getISODateString = (date: Date): string => date.toISOString().split('T')[0];
 
 const isSameDay = (d1: Date, d2: Date) => {
@@ -43,12 +40,20 @@ const App: React.FC = () => {
   const [showAnalytics, setShowAnalytics] = useState<boolean>(false);
   const [showInsights, setShowInsights] = useState<boolean>(false);
   const [exportText, setExportText] = useState<string>('');
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  // Initialize Firebase and get the db instance.
-  const { db } = initFirebase();
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
 
-  // The connection status is now determined synchronously.
-  const isFirebaseConnected = db !== null;
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const isToday = useMemo(() => isSameDay(selectedDate, new Date()), [selectedDate]);
 
@@ -171,9 +176,9 @@ const App: React.FC = () => {
       <main className="container mx-auto p-4 md:p-6 flex-grow">
         <DateNavigator selectedDate={selectedDate} onDateChange={setSelectedDate} isLoading={isLoading} />
         
-        {/* Firebase Connection Status */}
+        {/* Connection Status */}
         <div className="mb-6">
-          {!isFirebaseConnected ? (
+          {!isOnline ? (
             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
               <div className="flex">
                 <div className="flex-shrink-0">
@@ -181,9 +186,7 @@ const App: React.FC = () => {
                 </div>
                 <div className="ml-3">
                   <p className="text-sm text-yellow-700">
-                    <strong>Running in offline mode.</strong> Data will not be saved to Firebase.
-                    <br />
-                    The app is fully functional - you can add patients and distribute workload locally.
+                    <strong>You are offline.</strong> Changes will not be saved.
                   </p>
                 </div>
               </div>
@@ -196,7 +199,7 @@ const App: React.FC = () => {
                 </div>
                 <div className="ml-3">
                   <p className="text-sm text-green-700">
-                    <strong>Firebase connected!</strong> Your data will be automatically saved.
+                    <strong>Online.</strong> Your data will be saved automatically.
                   </p>
                 </div>
               </div>
