@@ -25,7 +25,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ assignments, pa
         <div className={`w-12 h-12 bg-${color}-100 rounded-lg flex items-center justify-center`}>
           <i className={`${icon} text-xl text-${color}-600`}></i>
         </div>
-      </Card>
+      </div>
     </Card>
   );
 

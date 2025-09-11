@@ -346,7 +346,7 @@ const HistoricalDataViewer: React.FC<HistoricalDataViewerProps> = ({ isOpen, onC
             </div>
           )}
 
-          {/* Loading State */
+          {/* Loading State */}
           {loading && (
             <div className="text-center py-8">
               <i className="fas fa-spinner fa-spin text-3xl text-blue-600 mb-4"></i>

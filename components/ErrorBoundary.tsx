@@ -43,7 +43,7 @@ class ErrorBoundary extends Component<Props, State> {
     }
 
     // Log to external service in production
-    if (process.env.NODE_ENV === 'production') {
+    if (import.meta.env.PROD) {
       // TODO: Send to error tracking service (e.g., Sentry, LogRocket)
       this.logErrorToService(error, errorInfo);
     }
@@ -93,7 +93,7 @@ class ErrorBoundary extends Component<Props, State> {
                 We're sorry, but something unexpected happened. The error has been logged and we'll look into it.
               </p>
               
-              {process.env.NODE_ENV === 'development' && this.state.error && (
+              {import.meta.env.DEV && this.state.error && (
                 <details className="bg-red-50 border border-red-200 rounded-lg p-4">
                   <summary className="cursor-pointer font-medium text-red-800 mb-2">
                     Error Details (Development Mode)

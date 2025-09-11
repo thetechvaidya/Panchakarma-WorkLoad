@@ -59,6 +59,9 @@ const App: React.FC = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Set initial status
+    setIsOnline(navigator.onLine);
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -129,9 +132,19 @@ const App: React.FC = () => {
       }, 'Deleting patient');
   }, [patients, scholars, selectedDate, isToday, withErrorHandling]);
 
-  const handleUpdatePatient = useCallback((updatedPatient: Patient) => {
-    setPatients(prev => prev.map(p => p.id === updatedPatient.id ? updatedPatient : p));
-  }, []);
+  const handleUpdatePatient = useCallback(async (patientId: string, updatedData: Partial<Patient>) => {
+    if (!isToday) return;
+    const updatedPatients = patients.map(p => 
+      p.id === patientId 
+        ? { ...p, ...updatedData } 
+        : p
+    );
+    setPatients(updatedPatients);
+    
+    await withErrorHandling(async () => {
+      await saveDailyData({ date: getISODateString(selectedDate), patients: updatedPatients, scholars });
+    }, 'Updating patient procedures');
+  }, [patients, scholars, selectedDate, isToday, withErrorHandling]);
   
   const handleToggleScholarStatus = useCallback(async (scholarId: string) => {
       if (!isToday) return;
@@ -193,8 +206,8 @@ const App: React.FC = () => {
               <ErrorDisplay 
                 error={error}
                 onDismiss={clearError}
-                variant="inline"
-                showDetails={process.env.NODE_ENV === 'development'}
+                variant="card"
+                showDetails={import.meta.env.DEV}
               />
             </div>
           )}
@@ -290,10 +303,10 @@ const App: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setHistoricalViewerOpen(true)}
-                    className="bg-white text-green-600 border border-green-300 font-medium py-3 px-4 rounded-lg hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-400 transition-all duration-300 ease-in-out flex items-center justify-center space-x-2 text-sm min-h-[44px] touch-manipulation"
+                    className="bg-green-600 text-white border border-green-600 font-medium py-3 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-300 ease-in-out flex items-center justify-center space-x-2 text-sm min-h-[44px] touch-manipulation"
                   >
                     <i className="fas fa-history"></i>
-                    <span>View History</span>
+                    <span>View Historical Data</span>
                   </button>
                 </div>
               </div>

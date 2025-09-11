@@ -214,7 +214,6 @@ const PatientInput: React.FC<PatientInputProps> = ({ patients, onAddPatient, onD
                                 <p>No procedures found.</p>
                             </div>
                             )}
-</div>
                         </div>
                         {isError && error?.details?.field === 'procedures' && (
                           <p className="mt-1 text-sm text-red-600">{error.message}</p>

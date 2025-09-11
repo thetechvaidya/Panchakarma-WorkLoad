@@ -21,17 +21,19 @@ export const useErrorHandler = () => {
     errorHistory: []
   });
 
-  const logError = useCallback((error: Error | string, context?: string, details?: any) => {
+  const logError = useCallback((error: Error | AppError | string, context?: string, details?: any) => {
+    const baseError = typeof error === 'string' ? { message: error } : error;
+
     const appError: AppError = {
-      message: typeof error === 'string' ? error : error.message,
-      code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
-      details,
-      timestamp: new Date(),
-      context
+      message: baseError.message,
+      code: ('code' in baseError && baseError.code) ? baseError.code : (baseError instanceof Error ? baseError.name : 'UNKNOWN_ERROR'),
+      details: ('details' in baseError && baseError.details) ? baseError.details : details,
+      timestamp: ('timestamp' in baseError && (baseError.timestamp instanceof Date || typeof baseError.timestamp === 'string')) ? new Date(baseError.timestamp) : new Date(),
+      context: ('context' in baseError && baseError.context) ? baseError.context : context
     };
 
     // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.error('Error logged:', appError);
       if (error instanceof Error && error.stack) {
         console.error('Stack trace:', error.stack);
@@ -46,7 +48,7 @@ export const useErrorHandler = () => {
     }));
 
     // In production, send to error tracking service
-    if (process.env.NODE_ENV === 'production') {
+    if (import.meta.env.PROD) {
       // TODO: Send to external error tracking service
       console.log('Would send to error tracking service:', appError);
     }

@@ -2,23 +2,28 @@ import type { HistoricalAssignmentRecord } from '../types';
 import { supabase } from '../supabaseClient';
 
 /**
- * Saves the daily workload data to Supabase using a transactional RPC function.
- * The user must create the 'save_daily_record' function in their Supabase SQL editor.
- * The SQL for this function is provided in comments at the end of this file.
+ * Saves the daily workload data to Supabase using direct table operations.
+ * Uses upsert to handle both new records and updates to existing ones.
  */
 export const saveDailyData = async (
   record: Partial<HistoricalAssignmentRecord> & { date: string }
 ): Promise<void> => {
   try {
-    const { error } = await supabase.rpc('save_daily_record', {
-      p_date: record.date,
-      p_scholars: record.scholars || [],
-      p_patients: record.patients || [],
-      p_assignments: record.assignments || [],
-    });
+    const { error } = await supabase
+      .from('daily_record')
+      .upsert({
+        date: record.date,
+        scholars: record.scholars || [],
+        patients: record.patients || [],
+        assignments: record.assignments || [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'date'
+      });
 
     if (error) {
-      console.error('Supabase RPC error:', error);
+      console.error('Supabase error:', error);
       const errorMessage = error.message || 'Unknown database error';
       throw new Error(`Failed to save daily data: ${errorMessage}`);
     }
@@ -35,21 +40,25 @@ export const saveDailyData = async (
 
 /**
  * Retrieves a historical record for a specific date from Supabase.
- * This function relies on an RPC function 'get_daily_record' to be created by the user.
+ * Uses direct table query instead of RPC function for better compatibility.
  */
 export const getDailyData = async (date: Date): Promise<HistoricalAssignmentRecord | null> => {
   const dateStr = date.toISOString().split('T')[0];
   try {
-    const { data, error } = await supabase.rpc('get_daily_record', { p_date: dateStr });
+    const { data, error } = await supabase
+      .from('daily_record')
+      .select('*')
+      .eq('date', dateStr)
+      .single();
 
     if (error) {
-      // 'PGRST116' is the code for 'single row not found', which is expected when no data exists.
+      // PGRST116 is the code for 'single row not found', which is expected when no data exists
       if (error.code === 'PGRST116') return null;
       console.error(`Failed to retrieve daily data for ${dateStr} from Supabase:`, error);
       throw new Error(`Database error: ${error.message}`);
     }
-    // The RPC function should return a single JSON object matching the HistoricalAssignmentRecord structure.
-    return data;
+    
+    return data as HistoricalAssignmentRecord;
   } catch (error) {
     if (error instanceof Error && error.message.includes('Database error:')) {
       throw error;
@@ -61,11 +70,19 @@ export const getDailyData = async (date: Date): Promise<HistoricalAssignmentReco
 
 /**
  * Retrieves the last 7 days of historical records from Supabase.
- * This function relies on an RPC function 'get_weekly_history' to be created by the user.
+ * Uses direct table query with date filtering.
  */
 export const getWeeklyHistory = async (): Promise<HistoricalAssignmentRecord[]> => {
   try {
-    const { data, error } = await supabase.rpc('get_weekly_history');
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const { data, error } = await supabase
+      .from('daily_record')
+      .select('*')
+      .gte('date', sevenDaysAgo.toISOString().split('T')[0])
+      .order('date', { ascending: false });
+    
     if (error) {
       console.error("Failed to retrieve weekly history from Supabase:", error);
       throw new Error(`Failed to retrieve weekly history: ${error.message}`);
@@ -82,29 +99,35 @@ export const getWeeklyHistory = async (): Promise<HistoricalAssignmentRecord[]> 
 
 /**
  * Retrieves the most recent assignments for continuity purposes.
- * This function relies on an RPC function 'get_latest_assignments_for_continuity' to be created by the user.
+ * Uses direct table query to get the latest assignments.
  */
 export const getLatestAssignmentsForContinuity = async (): Promise<Map<string, string>> => {
   const continuityMap = new Map<string, string>();
   try {
-    const { data, error } = await supabase.rpc('get_latest_assignments_for_continuity');
+    const { data, error } = await supabase
+      .from('daily_record')
+      .select('assignments, date')
+      .order('date', { ascending: false })
+      .limit(10);
+
     if (error) {
       console.error("Failed to retrieve latest assignments from Supabase:", error);
-      throw new Error(`Failed to retrieve latest assignments: ${error.message}`);
+      return continuityMap;
     }
 
     if (data) {
-      for (const item of data) {
-        continuityMap.set(item.patient_name, item.scholar_name);
+      for (const record of data) {
+        if (record.assignments && Array.isArray(record.assignments)) {
+          for (const assignment of record.assignments) {
+            if (assignment.patientName && assignment.scholarName) {
+              continuityMap.set(assignment.patientName, assignment.scholarName);
+            }
+          }
+        }
       }
     }
   } catch (error) {
-    if (error instanceof Error && error.message.includes('Failed to retrieve latest assignments:')) {
-      // For continuity function, we don't want to break the flow, just log and continue
-      console.error("Failed to retrieve latest assignments from Supabase:", error);
-    } else {
-      console.error("Failed to retrieve latest assignments from Supabase:", error);
-    }
+    console.error("Failed to retrieve latest assignments from Supabase:", error);
   }
 
   return continuityMap;
@@ -112,19 +135,24 @@ export const getLatestAssignmentsForContinuity = async (): Promise<Map<string, s
 
 /**
  * Retrieves historical records for a specific date range.
- * This function relies on an RPC function 'get_date_range_history' to be created by the user.
+ * Uses direct table query with date range filtering.
  */
 export const getDateRangeHistory = async (startDate: Date, endDate: Date): Promise<HistoricalAssignmentRecord[]> => {
   const startDateStr = startDate.toISOString().split('T')[0];
   const endDateStr = endDate.toISOString().split('T')[0];
   
   try {
-    const { data, error } = await supabase.rpc('get_date_range_history', {
-      p_start_date: startDateStr,
-      p_end_date: endDateStr
-    });
+    const { data, error } = await supabase
+      .from('daily_record')
+      .select('*')
+      .gte('date', startDateStr)
+      .lte('date', endDateStr)
+      .order('date', { ascending: true });
     
-    if (error) throw error;
+    if (error) {
+      console.error(`Failed to retrieve date range history from ${startDateStr} to ${endDateStr}:`, error);
+      return [];
+    }
     return data || [];
   } catch (error) {
     console.error(`Failed to retrieve date range history from ${startDateStr} to ${endDateStr}:`, error);
@@ -134,16 +162,24 @@ export const getDateRangeHistory = async (startDate: Date, endDate: Date): Promi
 
 /**
  * Retrieves historical records for a specific month.
- * This function relies on an RPC function 'get_monthly_history' to be created by the user.
+ * Uses direct table query with month/year filtering.
  */
 export const getMonthlyHistory = async (year: number, month: number): Promise<HistoricalAssignmentRecord[]> => {
   try {
-    const { data, error } = await supabase.rpc('get_monthly_history', {
-      p_year: year,
-      p_month: month
-    });
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
     
-    if (error) throw error;
+    const { data, error } = await supabase
+      .from('daily_records')
+      .select('*')
+      .gte('date', startDate.toISOString().split('T')[0])
+      .lte('date', endDate.toISOString().split('T')[0])
+      .order('date', { ascending: true });
+    
+    if (error) {
+      console.error(`Failed to retrieve monthly history for ${year}-${month}:`, error);
+      return [];
+    }
     return data || [];
   } catch (error) {
     console.error(`Failed to retrieve monthly history for ${year}-${month}:`, error);
@@ -161,17 +197,28 @@ export const getCurrentMonthHistory = async (): Promise<HistoricalAssignmentReco
 
 /**
  * Retrieves historical records for a specific day across multiple months/years.
- * Useful for analyzing patterns on specific days (e.g., all Mondays).
+ * Uses direct table query with day filtering on the client side.
  */
 export const getDayWiseHistory = async (dayOfWeek: number, limit: number = 30): Promise<HistoricalAssignmentRecord[]> => {
   try {
-    const { data, error } = await supabase.rpc('get_day_wise_history', {
-      p_day_of_week: dayOfWeek,
-      p_limit: limit
-    });
+    const { data, error } = await supabase
+      .from('daily_records')
+      .select('*')
+      .order('date', { ascending: false })
+      .limit(limit * 7); // Get more records to filter by day
     
-    if (error) throw error;
-    return data || [];
+    if (error) {
+      console.error(`Failed to retrieve day-wise history for day ${dayOfWeek}:`, error);
+      return [];
+    }
+    
+    // Filter by day of week on client side
+    const filtered = (data || []).filter(record => {
+      const date = new Date(record.date);
+      return date.getDay() === dayOfWeek;
+    }).slice(0, limit);
+    
+    return filtered;
   } catch (error) {
     console.error(`Failed to retrieve day-wise history for day ${dayOfWeek}:`, error);
     return [];

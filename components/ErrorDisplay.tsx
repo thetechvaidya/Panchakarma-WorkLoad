@@ -23,13 +23,9 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   if (!error) return null;
 
   // Normalize error to AppError format
-  const normalizedError: AppError = {
-    message: typeof error === 'string' ? error : error.message,
-    code: error instanceof Error ? error.name : (error as AppError).code,
-    details: (error as AppError).details,
-    timestamp: (error as AppError).timestamp || new Date(),
-    context: (error as AppError).context
-  };
+  const normalizedError: AppError = typeof error === 'string' 
+    ? { message: error, timestamp: new Date() } 
+    : ('message' in error ? error as AppError : { message: (error as Error).message, code: (error as Error).name, timestamp: new Date() });
 
   const getErrorIcon = (code?: string) => {
     switch (code) {
