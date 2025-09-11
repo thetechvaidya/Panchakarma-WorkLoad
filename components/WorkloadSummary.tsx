@@ -50,7 +50,7 @@ const WorkloadSummary: React.FC<WorkloadSummaryProps> = ({ assignments, patients
   return (
     <div>
         <h2 className="text-xl font-bold text-gray-700 mb-4">Daily Workload Overview</h2>
-        <div className="grid gap-6 grid-cols-2 md:grid-cols-4">
+        <div className="grid gap-3 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
            <StatCard icon="fa-star" value={totalPoints} label="Total Workload Points" color="teal" />
            <StatCard icon="fa-user-doctor" value={totalPatients} label="Total Patients" color="blue" />
            <StatCard icon="fa-clipboard-list" value={totalProcedures} label="Total Procedures" color="yellow" />

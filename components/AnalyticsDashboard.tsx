@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Assignment, Patient } from '../types';
 import { calculateWorkloadAnalytics, generateInsights } from '../services/analyticsService';
+import Card from './Card';
 
 interface AnalyticsDashboardProps {
   assignments: Map<string, Assignment>;
@@ -12,7 +13,10 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ assignments, pa
   const insights = generateInsights(analytics);
 
   const StatCard: React.FC<{ icon: string; title: string; value: string | number; color: string }> = ({ icon, title, value, color }) => (
-    <div className={`bg-white rounded-xl shadow-lg p-4 border-l-4 border-${color}-500`}>
+    <Card 
+      variant="outlined"
+      className={`p-4 border-l-4 border-${color}-500`}
+    >
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-600">{title}</p>
@@ -21,8 +25,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ assignments, pa
         <div className={`w-12 h-12 bg-${color}-100 rounded-lg flex items-center justify-center`}>
           <i className={`${icon} text-xl text-${color}-600`}></i>
         </div>
-      </div>
-    </div>
+      </Card>
+    </Card>
   );
 
   const ProgressBar: React.FC<{ value: number; max: number; color: string }> = ({ value, max, color }) => (
@@ -37,7 +41,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ assignments, pa
   return (
     <div className="space-y-6">
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard 
           icon="fas fa-users" 
           title="Total Patients" 
@@ -65,11 +69,12 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ assignments, pa
       </div>
 
       {/* Workload Balance Visualization */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-          <i className="fas fa-chart-bar text-teal-600 mr-2"></i>
-          Scholar Workload Distribution
-        </h3>
+      <Card 
+        title="Scholar Workload Distribution"
+        icon="chart-bar"
+        variant="elevated"
+        className="p-6"
+      >
         <div className="space-y-3">
           {Array.from(assignments.values()).map((assignment) => (
             <div key={assignment.scholar.id} className="flex items-center space-x-4">
@@ -89,15 +94,16 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ assignments, pa
             </div>
           ))}
         </div>
-      </div>
+      </Card>
 
       {/* Year Distribution */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-            <i className="fas fa-graduation-cap text-purple-600 mr-2"></i>
-            Distribution by Year
-          </h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <Card 
+          title="Distribution by Year"
+          icon="graduation-cap"
+          variant="elevated"
+          className="p-6"
+        >
           <div className="space-y-2">
             {Object.entries(analytics.yearDistribution).map(([year, count]) => (
               <div key={year} className="flex justify-between items-center">
@@ -106,13 +112,14 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ assignments, pa
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-            <i className="fas fa-venus-mars text-pink-600 mr-2"></i>
-            Gender Distribution
-          </h3>
+        <Card 
+          title="Gender Distribution"
+          icon="venus-mars"
+          variant="elevated"
+          className="p-6"
+        >
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium text-gray-600">Female Scholars</span>
@@ -123,24 +130,25 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ assignments, pa
               <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold">{analytics.genderDistribution.M}</span>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* AI Insights */}
-      <div className="bg-gradient-to-r from-teal-50 to-blue-50 rounded-xl shadow-lg p-6 border border-teal-200">
-        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-          <i className="fas fa-brain text-teal-600 mr-2"></i>
-          AI Insights & Recommendations
-        </h3>
+      <Card 
+        title="AI Insights & Recommendations"
+        icon="brain"
+        variant="outlined"
+        className="bg-gradient-to-r from-teal-50 to-blue-50 p-6 border-teal-200"
+      >
         <div className="space-y-2">
           {insights.map((insight, index) => (
             <div key={index} className="flex items-start space-x-2">
-              <div className="w-2 h-2 bg-teal-500 rounded-full mt-2 flex-shrink-0"></div>
-              <p className="text-sm text-gray-700">{insight}</p>
+              <i className="fas fa-lightbulb text-yellow-500 mt-1"></i>
+              <p className="text-gray-700">{insight}</p>
             </div>
           ))}
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

@@ -1,6 +1,8 @@
 import React from 'react';
 import type { Scholar } from '../types';
 import { Gender } from '../types';
+import Card from './Card';
+import Button from './Button';
 
 interface ScholarSetupProps {
   scholars: Scholar[];
@@ -19,9 +21,13 @@ const ScholarSetup: React.FC<ScholarSetupProps> = ({ scholars, onToggleScholarSt
   const sortedYears = Object.keys(scholarsByYear).map(Number).sort((a,b) => a-b);
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
-      <h3 className="text-lg font-bold text-gray-800 mb-4">PG Scholar Posting Status</h3>
-      <div className="space-y-4">
+    <Card 
+      title="PG Scholar Posting Status"
+      icon="user-graduate"
+      variant="elevated"
+      className="p-6"
+    >
+      <div className="space-y-4 mt-4">
         {sortedYears.map(year => (
           <div key={year}>
             <h4 className="font-semibold text-gray-600 mb-2 border-b pb-1">
@@ -50,7 +56,7 @@ const ScholarSetup: React.FC<ScholarSetupProps> = ({ scholars, onToggleScholarSt
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 };
 

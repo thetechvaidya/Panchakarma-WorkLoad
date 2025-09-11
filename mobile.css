@@ -1,0 +1,104 @@
+/* Mobile-specific optimizations */
+
+/* Improve touch targets and scrolling */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* Smooth scrolling for mobile */
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Prevent zoom on input focus on iOS */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="search"],
+textarea,
+select {
+  font-size: 16px;
+}
+
+/* Better scrolling for mobile */
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Improve button accessibility on mobile */
+button, 
+.btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Better modal positioning on mobile */
+@media (max-width: 640px) {
+  .modal-container {
+    margin: 1rem;
+    max-height: calc(100vh - 2rem);
+  }
+  
+  /* Stack cards vertically on very small screens */
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Reduce padding on small screens */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Better spacing for mobile forms */
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  /* Improve table responsiveness */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Landscape orientation optimizations */
+@media (max-height: 500px) and (orientation: landscape) {
+  .modal-container {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Ensure crisp icons and borders */
+  .icon {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Focus improvements for accessibility */
+@media (prefers-reduced-motion: no-preference) {
+  .focus-ring:focus {
+    transition: box-shadow 0.15s ease-in-out;
+  }
+}
+
+/* Dark mode support for mobile */
+@media (prefers-color-scheme: dark) {
+  /* Add dark mode styles if needed */
+}
+
+/* Reduce animations on mobile for better performance */
+@media (max-width: 768px) {
+  .animate-slow {
+    animation-duration: 0.3s;
+  }
+  
+  .transition-all {
+    transition-duration: 0.2s;
+  }
+}

@@ -17,6 +17,14 @@ import WeeklyAnalysisModal from './components/WeeklyAnalysisModal';
 import DateNavigator from './components/DateNavigator';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import IntelligentInsights from './components/IntelligentInsights';
+import HistoricalDataViewer from './components/HistoricalDataViewer';
+import Button from './components/Button';
+import Card from './components/Card';
+import LoadingSpinner from './components/LoadingSpinner';
+import ErrorBoundary from './components/ErrorBoundary';
+import ErrorDisplay from './components/ErrorDisplay';
+import { useErrorHandler } from './hooks/useErrorHandler';
+import { useLoadingState } from './hooks/useLoadingState';
 const getISODateString = (date: Date): string => date.toISOString().split('T')[0];
 
 const isSameDay = (d1: Date, d2: Date) => {
@@ -32,13 +40,15 @@ const App: React.FC = () => {
   const [scholars, setScholars] = useState<Scholar[]>(INITIAL_SCHOLARS);
   const [assignments, setAssignments] = useState<Map<string, Assignment>>(new Map());
   
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { error, isError, logError, clearError, withErrorHandling } = useErrorHandler();
+  const { isLoading, startLoading, stopLoading, withLoading } = useLoadingState(true);
   const [isDistributing, setIsDistributing] = useState<boolean>(false);
   const [showResults, setShowResults] = useState<boolean>(false);
   const [isExportModalOpen, setExportModalOpen] = useState<boolean>(false);
   const [isAnalysisModalOpen, setAnalysisModalOpen] = useState<boolean>(false);
   const [showAnalytics, setShowAnalytics] = useState<boolean>(false);
   const [showInsights, setShowInsights] = useState<boolean>(false);
+  const [historicalViewerOpen, setHistoricalViewerOpen] = useState<boolean>(false);
   const [exportText, setExportText] = useState<string>('');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -59,7 +69,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const loadDataForDate = async () => {
-        setIsLoading(true);
+        startLoading();
         setShowResults(false);
         
         // Don't block UI - load data in parallel and set defaults immediately
@@ -67,7 +77,7 @@ const App: React.FC = () => {
         setScholars(INITIAL_SCHOLARS);
         setAssignments(new Map());
         
-        try {
+        const result = await withErrorHandling(async () => {
             // Try to load data with timeout
             const dataPromise = getDailyData(selectedDate);
             const timeoutPromise = new Promise((_, reject) => 
@@ -86,15 +96,13 @@ const App: React.FC = () => {
                 }
                 setAssignments(assignmentMap);
             }
-        } catch (error) {
-            console.warn("Data loading failed or timed out, using defaults:", error);
-            // Use defaults already set above
-        } finally {
-            setIsLoading(false);
-        }
+            return true;
+        }, 'Loading data for selected date');
+        
+        stopLoading();
     };
     loadDataForDate();
-  }, [selectedDate]);
+  }, [selectedDate, startLoading, stopLoading, withErrorHandling]);
 
   const handleAddPatient = useCallback(async (patientData: Omit<Patient, 'id' | 'isAttendant'>) => {
       if (!isToday) return;
@@ -105,24 +113,25 @@ const App: React.FC = () => {
       }
       const updatedPatients = [...patients, newPatient];
       setPatients(updatedPatients);
-      try {
+      
+      await withErrorHandling(async () => {
         await saveDailyData({ date: getISODateString(selectedDate), patients: updatedPatients, scholars });
-      } catch (error) {
-        console.error("Failed to save new patient:", error);
-        // Optionally revert state or show error
-      }
-  }, [patients, scholars, selectedDate, isToday]);
+      }, 'Adding new patient');
+  }, [patients, scholars, selectedDate, isToday, withErrorHandling]);
 
   const handleDeletePatient = useCallback(async (patientId: string) => {
       if (!isToday) return;
       const updatedPatients = patients.filter(p => p.id !== patientId);
       setPatients(updatedPatients);
-      try {
+      
+      await withErrorHandling(async () => {
         await saveDailyData({ date: getISODateString(selectedDate), patients: updatedPatients, scholars });
-      } catch (error) {
-        console.error("Failed to save after deleting patient:", error);
-      }
-  }, [patients, scholars, selectedDate, isToday]);
+      }, 'Deleting patient');
+  }, [patients, scholars, selectedDate, isToday, withErrorHandling]);
+
+  const handleUpdatePatient = useCallback((updatedPatient: Patient) => {
+    setPatients(prev => prev.map(p => p.id === updatedPatient.id ? updatedPatient : p));
+  }, []);
   
   const handleToggleScholarStatus = useCallback(async (scholarId: string) => {
       if (!isToday) return;
@@ -132,21 +141,20 @@ const App: React.FC = () => {
             : scholar
       );
       setScholars(updatedScholars);
-      try {
+      
+      await withErrorHandling(async () => {
         await saveDailyData({ date: getISODateString(selectedDate), scholars: updatedScholars, patients });
-      } catch (error) {
-        console.error("Failed to save scholar status:", error);
-      }
-  }, [scholars, patients, selectedDate, isToday]);
+      }, 'Updating scholar status');
+  }, [scholars, patients, selectedDate, isToday, withErrorHandling]);
 
   const handleDistribute = useCallback(async () => {
     if (patients.length === 0 || !isToday) {
-        alert("Please add at least one patient on the current day before distributing.");
+        logError('Please add at least one patient on the current day before distributing.', 'VALIDATION_ERROR', 'Distribution validation');
         return;
     }
     setIsDistributing(true);
     
-    try {
+    const result = await withErrorHandling(async () => {
         const previousAssignments = await getLatestAssignmentsForContinuity();
         const newAssignments = distributeWorkload(patients, scholars, previousAssignments);
         setAssignments(newAssignments);
@@ -155,13 +163,15 @@ const App: React.FC = () => {
         await saveDailyData({ date: getISODateString(selectedDate), assignments: assignmentsArray, patients, scholars });
         setShowResults(true);
         
-    } catch(error) {
-        console.error("Error during workload distribution:", error);
-        alert("An error occurred during distribution or saving. Please check the console for details.");
-    } finally {
-        setIsDistributing(false);
+        return newAssignments;
+    }, 'Workload distribution');
+    
+    if (!result) {
+        logError('An error occurred during distribution or saving. Please try again.', 'DISTRIBUTION_ERROR', 'Workload distribution');
     }
-  }, [patients, scholars, selectedDate, isToday]);
+    
+    setIsDistributing(false);
+  }, [patients, scholars, selectedDate, isToday, logError, withErrorHandling]);
   
   const handleExport = () => {
     const text = generateExportText(assignments);
@@ -171,68 +181,58 @@ const App: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex flex-col">
-      <Header />
-      <main className="container mx-auto p-4 md:p-6 flex-grow">
-        <DateNavigator selectedDate={selectedDate} onDateChange={setSelectedDate} isLoading={isLoading} />
-        
-        {/* Connection Status */}
-        <div className="mb-6">
-          {!isOnline ? (
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <i className="fas fa-exclamation-triangle text-yellow-400"></i>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-yellow-700">
-                    <strong>You are offline.</strong> Changes will not be saved.
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-lg">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <i className="fas fa-check-circle text-green-400"></i>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-green-700">
-                    <strong>Online.</strong> Your data will be saved automatically.
-                  </p>
-                </div>
-              </div>
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex flex-col">
+        <Header />
+        <main className="container mx-auto p-4 md:p-6 flex-grow">
+          <DateNavigator selectedDate={selectedDate} onDateChange={setSelectedDate} isLoading={isLoading} />
+          
+          {/* Global Error Display */}
+          {isError && (
+            <div className="mb-6">
+              <ErrorDisplay 
+                error={error}
+                onDismiss={clearError}
+                variant="inline"
+                showDetails={process.env.NODE_ENV === 'development'}
+              />
             </div>
           )}
-        </div>
+        
+        {/* Connection Status */}
+        <Card variant="outlined" className="mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className={`w-3 h-3 rounded-full ${
+                isOnline ? 'bg-green-500' : 'bg-red-500'
+              }`}></div>
+              <span className="text-sm text-gray-600">
+                {isOnline ? 'Online - Data will be saved automatically' : 'Offline - Changes will not be saved'}
+              </span>
+            </div>
+          </div>
+        </Card>
         
         {/* Analytics and Insights Section */}
         {showResults && assignments.size > 0 && (
-          <div className="mb-6 space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <button
+          <Card title="Analytics & Insights" icon="chart-bar" variant="elevated" className="mb-6">
+            <div className="flex flex-wrap gap-2 mb-4">
+              <Button
                 onClick={() => setShowAnalytics(!showAnalytics)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  showAnalytics 
-                    ? 'bg-teal-600 text-white shadow-md' 
-                    : 'bg-white text-teal-600 border border-teal-600 hover:bg-teal-50'
-                }`}
+                variant={showAnalytics ? "primary" : "outline"}
+                icon="chart-bar"
+                className={showAnalytics ? "bg-teal-600 hover:bg-teal-700" : "text-teal-600 border-teal-600 hover:bg-teal-50"}
               >
-                <i className="fas fa-chart-bar mr-2"></i>
                 {showAnalytics ? 'Hide Analytics' : 'Show Analytics'}
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setShowInsights(!showInsights)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  showInsights 
-                    ? 'bg-purple-600 text-white shadow-md' 
-                    : 'bg-white text-purple-600 border border-purple-600 hover:bg-purple-50'
-                }`}
+                variant={showInsights ? "primary" : "outline"}
+                icon="brain"
+                className={showInsights ? "bg-purple-600 hover:bg-purple-700" : "text-purple-600 border-purple-600 hover:bg-purple-50"}
               >
-                <i className="fas fa-brain mr-2"></i>
                 {showInsights ? 'Hide AI Insights' : 'Show AI Insights'}
-              </button>
+              </Button>
             </div>
             
             {showAnalytics && (
@@ -242,15 +242,16 @@ const App: React.FC = () => {
             {showInsights && (
               <IntelligentInsights assignments={assignments} patients={patients} scholars={scholars} />
             )}
-          </div>
+          </Card>
         )}
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div className="lg:col-span-1 flex flex-col gap-4 sm:gap-6">
+          <div className="lg:col-span-1 flex flex-col gap-4 sm:gap-6 order-2 lg:order-1">
             <PatientInput 
               patients={patients} 
               onAddPatient={handleAddPatient} 
               onDeletePatient={handleDeletePatient}
+              onUpdatePatient={handleUpdatePatient}
               disabled={!isToday} 
             />
             
@@ -279,20 +280,20 @@ const App: React.FC = () => {
                     </>
                     )}
                 </button>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <button
                     onClick={() => setAnalysisModalOpen(true)}
-                    className="bg-white text-purple-600 border border-purple-300 font-medium py-2 px-3 rounded-lg hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-400 transition-all duration-300 ease-in-out flex items-center justify-center space-x-1 text-sm"
+                    className="bg-white text-purple-600 border border-purple-300 font-medium py-3 px-4 rounded-lg hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-400 transition-all duration-300 ease-in-out flex items-center justify-center space-x-2 text-sm min-h-[44px] touch-manipulation"
                   >
                     <i className="fas fa-chart-line"></i>
-                    <span>Weekly</span>
+                    <span>Weekly Analysis</span>
                   </button>
                   <button
-                    onClick={() => setShowInsights(!showInsights)}
-                    className="bg-white text-blue-600 border border-blue-300 font-medium py-2 px-3 rounded-lg hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all duration-300 ease-in-out flex items-center justify-center space-x-1 text-sm"
+                    onClick={() => setHistoricalViewerOpen(true)}
+                    className="bg-white text-green-600 border border-green-300 font-medium py-3 px-4 rounded-lg hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-400 transition-all duration-300 ease-in-out flex items-center justify-center space-x-2 text-sm min-h-[44px] touch-manipulation"
                   >
-                    <i className="fas fa-lightbulb"></i>
-                    <span>Insights</span>
+                    <i className="fas fa-history"></i>
+                    <span>View History</span>
                   </button>
                 </div>
               </div>
@@ -302,16 +303,16 @@ const App: React.FC = () => {
             <ProcedureGradeTable />
             <RulesDisplay />
           </div>
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 order-1 lg:order-2">
             {isDistributing || isLoading ? (
-                <div className="flex items-center justify-center h-full bg-white rounded-xl shadow-md p-10">
+                <Card className="flex items-center justify-center h-full p-10">
                     <div className="text-center">
-                        <i className="fas fa-spinner fa-spin text-4xl text-teal-600"></i>
+                        <LoadingSpinner size="large" className="text-teal-600" />
                         <p className="mt-4 text-lg text-gray-600">
                             {isLoading ? "Loading data..." : "Calculating optimal distribution..."}
                         </p>
                     </div>
-                </div>
+                </Card>
             ) : showResults ? (
                 <div className="flex flex-col gap-6">
                     {!isToday && (
@@ -324,12 +325,12 @@ const App: React.FC = () => {
                     <ResultsDisplay assignments={assignments} onExport={handleExport} />
                 </div>
             ) : (
-                 <div className="flex items-center justify-center h-full bg-white rounded-xl shadow-md p-10">
+                 <Card className="flex items-center justify-center h-full p-10">
                     <div className="text-center">
                         <i className="fas fa-info-circle text-4xl text-gray-400"></i>
                         <p className="mt-4 text-lg text-gray-600">{isToday ? "Add patients and click 'Distribute Workload' to see assignments." : "No workload was recorded for this day."}</p>
                     </div>
-                </div>
+                </Card>
             )}
           </div>
         </div>
@@ -382,7 +383,12 @@ const App: React.FC = () => {
         onClose={() => setAnalysisModalOpen(false)}
         scholars={scholars}
       />
-    </div>
+      <HistoricalDataViewer
+        isOpen={historicalViewerOpen}
+        onClose={() => setHistoricalViewerOpen(false)}
+      />
+      </div>
+    </ErrorBoundary>
   );
 };
 

@@ -1,10 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import type { Assignment, AssignedProcedure } from '../types';
 import { Gender } from '../types';
+import Card from './Card';
+import Button from './Button';
 
 interface ResultsDisplayProps {
   assignments: Map<string, Assignment>;
   onExport: () => void;
+  isDistributing?: boolean;
 }
 
 const getPointBadgeColor = (points: number) => {
@@ -76,7 +79,7 @@ const ScholarCard: React.FC<{ assignment: Assignment }> = ({ assignment }) => {
 };
 
 
-const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ assignments, onExport }) => {
+const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ assignments, onExport, isDistributing = false }) => {
   const [sortBy, setSortBy] = useState<'year' | 'name' | 'points'>('year');
 
   const sortedAssignments = useMemo(() => {
@@ -105,31 +108,39 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ assignments, onExport }
   );
 
   return (
-    <div>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-            <h2 className="text-xl font-bold text-gray-700">Assigned Workload</h2>
-            <div className="flex items-center gap-4 w-full md:w-auto">
+    <Card 
+      title="Assigned Workload"
+      variant="elevated"
+      className="overflow-hidden"
+    >
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3 sm:gap-4">
+            <div></div>
+            <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
                 <div className="flex items-center bg-white border border-gray-200 rounded-lg p-1 space-x-1">
                     <span className="text-sm font-semibold text-gray-500 mr-2 ml-1">Sort by:</span>
                     <SortButton value="year" label="Year" />
                     <SortButton value="points" label="Points" />
                     <SortButton value="name" label="Name" />
                 </div>
-                <button
+                <Button
                     onClick={onExport}
-                    className="bg-white text-teal-600 border border-teal-600 font-bold py-2 px-4 rounded-lg hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors duration-200 flex items-center space-x-2 text-sm ml-auto"
+                    variant="outline"
+                    size="sm"
+                    icon={isDistributing ? "fa-spinner" : "file-export"}
+                    className="text-teal-600 border-teal-600 hover:bg-teal-50"
+                    loading={isDistributing}
+                    disabled={isDistributing}
                 >
-                    <i className="fas fa-file-export"></i>
-                    <span>Export</span>
-                </button>
+                    {isDistributing ? 'Exporting...' : 'Export'}
+                </Button>
             </div>
         </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {sortedAssignments.map(assignment => (
-          <ScholarCard key={assignment.scholar.id} assignment={assignment} />
-        ))}
-      </div>
-    </div>
+        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+          {sortedAssignments.map(assignment => (
+            <ScholarCard key={assignment.scholar.id} assignment={assignment} />
+          ))}
+        </div>
+    </Card>
   );
 };
 
