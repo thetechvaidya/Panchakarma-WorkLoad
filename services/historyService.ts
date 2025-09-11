@@ -170,7 +170,7 @@ export const getMonthlyHistory = async (year: number, month: number): Promise<Hi
     const endDate = new Date(year, month, 0);
     
     const { data, error } = await supabase
-      .from('daily_records')
+      .from('daily_record')
       .select('*')
       .gte('date', startDate.toISOString().split('T')[0])
       .lte('date', endDate.toISOString().split('T')[0])
@@ -202,7 +202,7 @@ export const getCurrentMonthHistory = async (): Promise<HistoricalAssignmentReco
 export const getDayWiseHistory = async (dayOfWeek: number, limit: number = 30): Promise<HistoricalAssignmentRecord[]> => {
   try {
     const { data, error } = await supabase
-      .from('daily_records')
+      .from('daily_record')
       .select('*')
       .order('date', { ascending: false })
       .limit(limit * 7); // Get more records to filter by day
