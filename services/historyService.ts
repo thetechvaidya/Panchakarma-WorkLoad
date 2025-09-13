@@ -1,5 +1,31 @@
 import type { HistoricalAssignmentRecord } from '../types';
-import { supabase } from '../supabaseClient';
+import { db } from '../firebaseClient';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  query,
+  orderBy,
+  DocumentData,
+  QueryDocumentSnapshot
+} from 'firebase/firestore';
+
+// Firestore collection name
+const DAILY_COLLECTION = 'daily_record';
+
+// Helper to normalize date to YYYY-MM-DD (Firestire doc id scheme)
+const dateKey = (date: string | Date): string => {
+  if (typeof date === 'string') return date;
+  return date.toISOString().split('T')[0] as string;
+};
+
+// Shape stored in Firestore (can evolve independently)
+interface DailyRecordDoc extends HistoricalAssignmentRecord {
+  created_at?: string;
+  updated_at?: string;
+}
 
 /**
  * Saves the daily workload data to Supabase using direct table operations.
@@ -8,33 +34,24 @@ import { supabase } from '../supabaseClient';
 export const saveDailyData = async (
   record: Partial<HistoricalAssignmentRecord> & { date: string }
 ): Promise<void> => {
+  const id = dateKey(record.date);
+  const ref = doc(collection(db, DAILY_COLLECTION), id);
   try {
-    const { error } = await supabase
-      .from('daily_record')
-      .upsert({
-        date: record.date,
-        scholars: record.scholars || [],
-        patients: record.patients || [],
-        assignments: record.assignments || [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'date'
-      });
-
-    if (error) {
-      console.error('Supabase error:', error);
-      const errorMessage = error.message || 'Unknown database error';
-      throw new Error(`Failed to save daily data: ${errorMessage}`);
-    }
-
+    const now = new Date().toISOString();
+    const existing = await getDoc(ref);
+    const payload: DailyRecordDoc = {
+      date: id,
+      scholars: record.scholars || (existing.data()?.scholars ?? []),
+      patients: record.patients || (existing.data()?.patients ?? []),
+      assignments: record.assignments || (existing.data()?.assignments ?? []),
+      created_at: existing.exists() ? existing.data()?.created_at : now,
+      updated_at: now
+    } as DailyRecordDoc;
+    await setDoc(ref, payload, { merge: true });
     console.log(`Successfully saved data for ${record.date}.`);
   } catch (error) {
-    console.error("Error in saveDailyData:", error);
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error('An unexpected error occurred while saving data');
+    console.error('Error in saveDailyData (Firestore):', error);
+    throw new Error('Failed to save daily data');
   }
 };
 
@@ -43,27 +60,13 @@ export const saveDailyData = async (
  * Uses direct table query instead of RPC function for better compatibility.
  */
 export const getDailyData = async (date: Date): Promise<HistoricalAssignmentRecord | null> => {
-  const dateStr = date.toISOString().split('T')[0];
+  const id = dateKey(date);
   try {
-    const { data, error } = await supabase
-      .from('daily_record')
-      .select('*')
-      .eq('date', dateStr)
-      .single();
-
-    if (error) {
-      // PGRST116 is the code for 'single row not found', which is expected when no data exists
-      if (error.code === 'PGRST116') return null;
-      console.error(`Failed to retrieve daily data for ${dateStr} from Supabase:`, error);
-      throw new Error(`Database error: ${error.message}`);
-    }
-    
-    return data as HistoricalAssignmentRecord;
+    const snap = await getDoc(doc(collection(db, DAILY_COLLECTION), id));
+    if (!snap.exists()) return null;
+    return snap.data() as HistoricalAssignmentRecord;
   } catch (error) {
-    if (error instanceof Error && error.message.includes('Database error:')) {
-      throw error;
-    }
-    console.error(`Failed to retrieve daily data for ${dateStr} from Supabase:`, error);
+    console.error(`Failed to retrieve daily data for ${id} from Firestore:`, error);
     return null;
   }
 };
@@ -76,24 +79,19 @@ export const getWeeklyHistory = async (): Promise<HistoricalAssignmentRecord[]> 
   try {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    const { data, error } = await supabase
-      .from('daily_record')
-      .select('*')
-      .gte('date', sevenDaysAgo.toISOString().split('T')[0])
-      .order('date', { ascending: false });
-    
-    if (error) {
-      console.error("Failed to retrieve weekly history from Supabase:", error);
-      throw new Error(`Failed to retrieve weekly history: ${error.message}`);
-    }
-    return data || [];
+    const startKey = dateKey(sevenDaysAgo);
+    // Firestore cannot query by doc id range directly without using FieldPath.documentId()
+    const qRef = query(collection(db, DAILY_COLLECTION), orderBy('date', 'desc'));
+    const snaps = await getDocs(qRef);
+    const results: HistoricalAssignmentRecord[] = [];
+    snaps.forEach((s: QueryDocumentSnapshot<DocumentData>) => {
+      const data = s.data() as HistoricalAssignmentRecord;
+      if (data.date >= startKey) results.push(data);
+    });
+    return results.sort((a,b)=> a.date < b.date ? 1 : -1);
   } catch (error) {
-    if (error instanceof Error && error.message.includes('Failed to retrieve weekly history:')) {
-      throw error;
-    }
-    console.error("Failed to retrieve weekly history from Supabase:", error);
-    throw new Error('An unexpected error occurred while retrieving weekly history');
+    console.error('Failed to retrieve weekly history (Firestore):', error);
+    throw new Error('Failed to retrieve weekly history');
   }
 };
 
@@ -104,32 +102,27 @@ export const getWeeklyHistory = async (): Promise<HistoricalAssignmentRecord[]> 
 export const getLatestAssignmentsForContinuity = async (): Promise<Map<string, string>> => {
   const continuityMap = new Map<string, string>();
   try {
-    const { data, error } = await supabase
-      .from('daily_record')
-      .select('assignments, date')
-      .order('date', { ascending: false })
-      .limit(10);
-
-    if (error) {
-      console.error("Failed to retrieve latest assignments from Supabase:", error);
-      return continuityMap;
-    }
-
-    if (data) {
-      for (const record of data) {
-        if (record.assignments && Array.isArray(record.assignments)) {
-          for (const assignment of record.assignments) {
-            if (assignment.patientName && assignment.scholarName) {
-              continuityMap.set(assignment.patientName, assignment.scholarName);
+    const qRef = query(collection(db, DAILY_COLLECTION), orderBy('date', 'desc'));
+    const snaps = await getDocs(qRef);
+    const recent: HistoricalAssignmentRecord[] = [];
+  snaps.forEach((s: QueryDocumentSnapshot<DocumentData>) => { recent.push(s.data() as HistoricalAssignmentRecord); });
+    recent.sort((a,b)=> a.date < b.date ? 1 : -1);
+    const slice = recent.slice(0, 10);
+    for (const record of slice) {
+      if (Array.isArray(record.assignments)) {
+        for (const assignment of record.assignments) {
+          // assignment is Assignment type -> we iterate its procedures
+          (assignment.procedures || []).forEach(proc => {
+            if (proc.patientName && assignment.scholar?.name) {
+              continuityMap.set(proc.patientName, assignment.scholar.name);
             }
-          }
+          });
         }
       }
     }
   } catch (error) {
-    console.error("Failed to retrieve latest assignments from Supabase:", error);
+    console.error('Failed to retrieve latest assignments (Firestore):', error);
   }
-
   return continuityMap;
 };
 
@@ -138,24 +131,19 @@ export const getLatestAssignmentsForContinuity = async (): Promise<Map<string, s
  * Uses direct table query with date range filtering.
  */
 export const getDateRangeHistory = async (startDate: Date, endDate: Date): Promise<HistoricalAssignmentRecord[]> => {
-  const startDateStr = startDate.toISOString().split('T')[0];
-  const endDateStr = endDate.toISOString().split('T')[0];
-  
+  const startStr = dateKey(startDate);
+  const endStr = dateKey(endDate);
   try {
-    const { data, error } = await supabase
-      .from('daily_record')
-      .select('*')
-      .gte('date', startDateStr)
-      .lte('date', endDateStr)
-      .order('date', { ascending: true });
-    
-    if (error) {
-      console.error(`Failed to retrieve date range history from ${startDateStr} to ${endDateStr}:`, error);
-      return [];
-    }
-    return data || [];
+    const qRef = query(collection(db, DAILY_COLLECTION), orderBy('date', 'asc'));
+    const snaps = await getDocs(qRef);
+    const results: HistoricalAssignmentRecord[] = [];
+    snaps.forEach((s: QueryDocumentSnapshot<DocumentData>) => {
+      const data = s.data() as HistoricalAssignmentRecord;
+      if (data.date >= startStr && data.date <= endStr) results.push(data);
+    });
+    return results.sort((a,b)=> a.date > b.date ? 1 : -1);
   } catch (error) {
-    console.error(`Failed to retrieve date range history from ${startDateStr} to ${endDateStr}:`, error);
+    console.error(`Failed to retrieve date range history ${startStr} - ${endStr} (Firestore):`, error);
     return [];
   }
 };
@@ -166,23 +154,11 @@ export const getDateRangeHistory = async (startDate: Date, endDate: Date): Promi
  */
 export const getMonthlyHistory = async (year: number, month: number): Promise<HistoricalAssignmentRecord[]> => {
   try {
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0);
-    
-    const { data, error } = await supabase
-      .from('daily_record')
-      .select('*')
-      .gte('date', startDate.toISOString().split('T')[0])
-      .lte('date', endDate.toISOString().split('T')[0])
-      .order('date', { ascending: true });
-    
-    if (error) {
-      console.error(`Failed to retrieve monthly history for ${year}-${month}:`, error);
-      return [];
-    }
-    return data || [];
+    const start = new Date(year, month - 1, 1);
+    const end = new Date(year, month, 0);
+    return getDateRangeHistory(start, end);
   } catch (error) {
-    console.error(`Failed to retrieve monthly history for ${year}-${month}:`, error);
+    console.error(`Failed to retrieve monthly history for ${year}-${month} (Firestore):`, error);
     return [];
   }
 };
@@ -201,26 +177,14 @@ export const getCurrentMonthHistory = async (): Promise<HistoricalAssignmentReco
  */
 export const getDayWiseHistory = async (dayOfWeek: number, limit: number = 30): Promise<HistoricalAssignmentRecord[]> => {
   try {
-    const { data, error } = await supabase
-      .from('daily_record')
-      .select('*')
-      .order('date', { ascending: false })
-      .limit(limit * 7); // Get more records to filter by day
-    
-    if (error) {
-      console.error(`Failed to retrieve day-wise history for day ${dayOfWeek}:`, error);
-      return [];
-    }
-    
-    // Filter by day of week on client side
-    const filtered = (data || []).filter(record => {
-      const date = new Date(record.date);
-      return date.getDay() === dayOfWeek;
-    }).slice(0, limit);
-    
+    const qRef = query(collection(db, DAILY_COLLECTION), orderBy('date', 'desc'));
+    const snaps = await getDocs(qRef);
+    const records: HistoricalAssignmentRecord[] = [];
+  snaps.forEach((s: QueryDocumentSnapshot<DocumentData>) => records.push(s.data() as HistoricalAssignmentRecord));
+    const filtered = records.filter(r => new Date(r.date).getDay() === dayOfWeek).slice(0, limit);
     return filtered;
   } catch (error) {
-    console.error(`Failed to retrieve day-wise history for day ${dayOfWeek}:`, error);
+    console.error(`Failed to retrieve day-wise history for day ${dayOfWeek} (Firestore):`, error);
     return [];
   }
 };
@@ -230,21 +194,80 @@ export const getDayWiseHistory = async (dayOfWeek: number, limit: number = 30): 
  * This function relies on an RPC function 'get_date_range_stats' to be created by the user.
  */
 export const getDateRangeStats = async (startDate: Date, endDate: Date) => {
-  const startDateStr = startDate.toISOString().split('T')[0];
-  const endDateStr = endDate.toISOString().split('T')[0];
-  
-  try {
-    const { data, error } = await supabase.rpc('get_date_range_stats', {
-      p_start_date: startDateStr,
-      p_end_date: endDateStr
+  const history = await getDateRangeHistory(startDate, endDate);
+  if (history.length === 0) return null;
+
+  const daySet = new Set(history.map(r => r.date));
+  const scholarSet = new Set<string>();
+  const patientSet = new Set<string>();
+  let totalAssignments = 0;
+  const assignmentsPerDay: Record<string, number> = {};
+  const patientsPerDay: Record<string, number> = {};
+  const scholarAssignmentCount: Record<string, number> = {};
+  const procedureCount: Record<string, number> = {};
+
+  history.forEach(record => {
+    const date = record.date;
+    const assignments = record.assignments || [];
+    assignmentsPerDay[date] = assignmentsPerDay[date] || 0;
+    patientsPerDay[date] = patientsPerDay[date] || 0;
+    const dayPatientNames = new Set<string>();
+
+    assignments.forEach(a => {
+      if (a.scholar) {
+        scholarSet.add(a.scholar.id);
+        scholarAssignmentCount[a.scholar.id] = (scholarAssignmentCount[a.scholar.id] || 0) + a.procedures.length;
+      }
+      a.procedures.forEach(p => {
+        totalAssignments++;
+        dayPatientNames.add(p.patientName);
+        const procName = p.procedure?.name;
+        if (procName) procedureCount[procName] = (procedureCount[procName] || 0) + 1;
+      });
     });
-    
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error(`Failed to retrieve stats for date range ${startDateStr} to ${endDateStr}:`, error);
-    return null;
+    dayPatientNames.forEach(name => patientSet.add(name));
+    assignmentsPerDay[date] += assignments.reduce((sum,a)=> sum + a.procedures.length, 0);
+    patientsPerDay[date] += dayPatientNames.size;
+  });
+
+  const avgPatientsPerDay = Object.values(patientsPerDay).reduce((a,b)=>a+b,0)/daySet.size;
+  const avgAssignmentsPerDay = Object.values(assignmentsPerDay).reduce((a,b)=>a+b,0)/daySet.size;
+
+  // Most active scholar
+  let mostActiveScholar: string | null = null;
+  let maxScholarCount = -1;
+  Object.entries(scholarAssignmentCount).forEach(([id,count])=>{
+    if (count > maxScholarCount) { maxScholarCount = count; mostActiveScholar = id; }
+  });
+
+  // We need scholar name; search first record containing scholar id
+  let mostActiveScholarName: string | null = null;
+  if (mostActiveScholar) {
+    for (const record of history) {
+      for (const a of record.assignments || []) {
+        if (a.scholar.id === mostActiveScholar) { mostActiveScholarName = a.scholar.name; break; }
+      }
+      if (mostActiveScholarName) break;
+    }
   }
+
+  // Most common procedure
+  let mostCommonProcedure: string | null = null;
+  let maxProcCount = -1;
+  Object.entries(procedureCount).forEach(([name,count])=>{
+    if (count > maxProcCount) { maxProcCount = count; mostCommonProcedure = name; }
+  });
+
+  return {
+    total_days: daySet.size,
+    total_scholars: scholarSet.size,
+    total_patients: patientSet.size,
+    total_assignments: totalAssignments,
+    avg_patients_per_day: Number(avgPatientsPerDay.toFixed(2)),
+    avg_assignments_per_day: Number(avgAssignmentsPerDay.toFixed(2)),
+    most_active_scholar: mostActiveScholarName,
+    most_common_procedure: mostCommonProcedure
+  };
 };
 
 /*
@@ -318,71 +341,7 @@ BEGIN
     RETURN (
         SELECT jsonb_build_object(
             'date', p_date,
-            'scholars', COALESCE((
-                SELECT jsonb_agg(s.* || jsonb_build_object('isPosted', dss.is_posted))
-                FROM scholars s
-                JOIN daily_scholar_states dss ON s.id = dss.scholar_id
-                WHERE dss.date = p_date
-            ), '[]'::jsonb),
-            'patients', COALESCE((
-                SELECT jsonb_agg(p_json)
-                FROM (
-                    SELECT jsonb_build_object(
-                        'id', p.id, 'name', p.name, 'gender', p.gender, 'isAttendant', dps.is_attendant,
-                        'procedures', COALESCE((
-                            SELECT jsonb_agg(proc.*)
-                            FROM procedures proc
-                            JOIN daily_patient_procedures dpp ON proc.id = dpp.procedure_id
-                            WHERE dpp.daily_patient_state_id = dps.id
-                        ), '[]'::jsonb)
-                    ) as p_json
-                    FROM patients p
-                    JOIN daily_patient_states dps ON p.id = dps.patient_id
-                    WHERE dps.date = p_date
-                ) patient_subquery
-            ), '[]'::jsonb),
-            'assignments', COALESCE((
-                SELECT jsonb_agg(agg_assignments)
-                FROM (
-                    SELECT s.id as scholar_id, jsonb_build_object('scholar', s.*, 'procedures', jsonb_agg(
-                        jsonb_build_object('patientName', pat.name, 'patientGender', pat.gender, 'procedure', proc.*)
-                    )) as agg_assignments
-                    FROM assignments a
-                    JOIN scholars s ON a.scholar_id = s.id
-                    JOIN patients pat ON a.patient_id = pat.id
-                    JOIN procedures proc ON a.procedure_id = proc.id
-                    WHERE a.date = p_date
-                    GROUP BY s.id
-                ) grouped_assignments
-            ), '[]'::jsonb)
-        )
-    );
-END;
-$$ LANGUAGE plpgsql;
-
-
--- 3. Function to get weekly history
--- 3. Function to get weekly history (Optimized)
-CREATE OR REPLACE FUNCTION get_weekly_history()
-RETURNS JSONB AS $$
-BEGIN
-    RETURN (
-        SELECT jsonb_agg(daily_records ORDER BY date DESC)
-        FROM (
-            SELECT
-                d.date,
-                (SELECT jsonb_agg(s.* || jsonb_build_object('isPosted', dss.is_posted)) FROM scholars s JOIN daily_scholar_states dss ON s.id = dss.scholar_id WHERE dss.date = d.date) as scholars,
-                (SELECT jsonb_agg(p_json) FROM (
-                    SELECT jsonb_build_object('id', p.id, 'name', p.name, 'gender', p.gender, 'isAttendant', dps.is_attendant, 'procedures', COALESCE((SELECT jsonb_agg(proc.*) FROM procedures proc JOIN daily_patient_procedures dpp ON proc.id = dpp.procedure_id WHERE dpp.daily_patient_state_id = dps.id), '[]'::jsonb)) as p_json
-                    FROM patients p JOIN daily_patient_states dps ON p.id = dps.patient_id WHERE dps.date = d.date
-                ) patient_subquery) as patients,
-                (SELECT jsonb_agg(agg_assignments) FROM (
-                    SELECT s.id as scholar_id, jsonb_build_object('scholar', s.*, 'procedures', jsonb_agg(jsonb_build_object('patientName', pat.name, 'patientGender', pat.gender, 'procedure', proc.*))) as agg_assignments
-                    FROM assignments a
-                    JOIN scholars s ON a.scholar_id = s.id
-                    JOIN patients pat ON a.patient_id = pat.id
-                    JOIN procedures proc ON a.procedure_id = proc.id
-                    WHERE a.date = d.date
+            // Removed Supabase SQL function documentation; Firestore implementation handles data directly on client.
                     GROUP BY s.id
                 ) grouped_assignments) as assignments
             FROM (

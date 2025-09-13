@@ -1,19 +1,13 @@
 import path from 'path';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', '');
   const isDev = mode === 'development';
   
   return {
     plugins: [
-      react({
-        // Enable Fast Refresh
-        fastRefresh: isDev,
-        // JSX runtime
-        jsxRuntime: 'automatic'
-      })
+      react({ jsxRuntime: 'automatic' })
     ],
     
     server: {
@@ -31,8 +25,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks: {
-            vendor: ['react', 'react-dom'],
-            supabase: ['@supabase/supabase-js']
+            vendor: ['react', 'react-dom']
           }
         }
       },
@@ -54,7 +47,7 @@ export default defineConfig(({ mode }) => {
     },
     
     optimizeDeps: {
-      include: ['react', 'react-dom', '@supabase/supabase-js']
+      include: ['react', 'react-dom']
     },
     
     esbuild: {

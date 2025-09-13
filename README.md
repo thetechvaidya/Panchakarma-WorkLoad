@@ -8,35 +8,49 @@ This contains everything you need to run your app locally.
 
 View your app in AI Studio: https://ai.studio/apps/drive/1pjylJHDg-mJvlUz3n24lICpj1Z0r7a1C
 
-## Supabase Setup for Vercel
+## Firebase Setup (Replaces Supabase)
 
-This app uses Supabase for data storage. For automatic deployment on Vercel:
+This app now uses Firebase Firestore for persistence.
 
-### 1. Supabase Project Setup
-- Create a Supabase project at https://supabase.com
-- Get your project URL and anonymous key from Project Settings → API
+### 1. Firebase Project
+1. Go to https://console.firebase.google.com and create (or select) the project `panchakarma-workload`.
+2. Enable Firestore in production or test mode (test mode recommended for initial development, then tighten rules).
+3. (Optional) Create a Web App within the Firebase project to obtain config values.
 
-### 2. Vercel Environment Variables
-Add these environment variables in your Vercel dashboard (Settings → Environment Variables):
+### 2. Configuration
+The Firebase config is currently in `firebaseClient.ts`. To externalize via environment variables, set these in Vercel (Settings → Environment Variables) and modify `firebaseClient.ts` to read `import.meta.env.*` values:
 
 ```
-VITE_SUPABASE_URL=your-supabase-url
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_FIREBASE_AUTH_DOMAIN=panchakarma-workload.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=panchakarma-workload
+VITE_FIREBASE_STORAGE_BUCKET=panchakarma-workload.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=374465789655
+VITE_FIREBASE_APP_ID=1:374465789655:web:0c8627195040917274fa92
 ```
 
-### 3. Automatic Deployment
-Once environment variables are set, Vercel will automatically:
-- Build the app with Supabase integration
-- Connect to your Supabase project
-- Deploy with full functionality
+### 3. Firestore Data Structure
+Collection: `daily_record`
+Document ID: `YYYY-MM-DD`
+Document shape:
+```
+{
+   date: string,
+   scholars: Scholar[],
+   patients: Patient[],
+   assignments: Assignment[],
+   created_at: ISOString,
+   updated_at: ISOString
+}
+```
+
+No server-side functions are required; aggregations are performed client-side.
 
 ## Run Locally
 
-**Prerequisites:** Node.js, Supabase project
+**Prerequisites:** Node.js, Firebase project
 
-1. Copy `.env.example` to `.env.local` and add your Supabase configuration:
-   - `VITE_SUPABASE_URL`: Your Supabase project URL
-   - `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+1. Copy `.env.example` to `.env.local` (optional if using inline config) and fill values if you want environment-based config.
 2. Install dependencies: `npm install`
 3. Run the app: `npm run dev`
 
