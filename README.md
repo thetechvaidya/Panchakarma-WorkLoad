@@ -54,3 +54,25 @@ No server-side functions are required; aggregations are performed client-side.
 2. Install dependencies: `npm install`
 3. Run the app: `npm run dev`
 
+## Styling / Tailwind CSS
+
+The project uses Tailwind CSS (v4 plugin pipeline) with a single entry stylesheet at `src/index.css` included via `<link>` in `index.html`.
+
+Key points:
+- Purge/content paths defined in `tailwind.config.js` cover `index.html`, `components/**/*`, `src/**/*` and root TS/TSX.
+- Custom utilities/components added via `@layer` in `src/index.css` (`.card`, `.btn-primary`, `.btn-outline`, scrollbar utilities).
+- Font family defaults to Inter (loaded via Google Fonts in `index.html`).
+- To add new design tokens (colors, spacing, shadows), extend `theme.extend` in `tailwind.config.js`.
+- If classes don't appear, ensure they are not dynamically constructed in a way purge can't detect (avoid string concatenation building arbitrary class names).
+
+Development tips:
+```bash
+npm run dev        # Rebuilds on changes
+```
+
+If Tailwind utilities appear missing in the browser:
+1. Hard refresh / clear cache.
+2. Inspect compiled CSS to verify presence of the utility.
+3. Ensure the utility string exists verbatim in code (not computed).
+4. Confirm PostCSS config uses `tailwindcss` and `autoprefixer` plugins.
+

@@ -1,20 +1,32 @@
 import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig(({ mode }) => {
   const isDev = mode === 'development';
   
   return {
     plugins: [
-      react({ jsxRuntime: 'automatic' })
+      react({ jsxRuntime: 'automatic' }),
+      tailwindcss()
     ],
     
     server: {
       host: '0.0.0.0',
       port: 5002,
-      hmr: true,
-      open: true
+      hmr: {
+        port: 5002,
+        clientPort: 5002
+      },
+      open: true,
+      strictPort: true,
+      cors: true,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     },
     
     build: {
