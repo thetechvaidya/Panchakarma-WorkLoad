@@ -13,15 +13,18 @@ export default defineConfig(({ mode }) => {
     ],
     
     server: {
-      host: '0.0.0.0',
+      host: 'localhost',
       port: 5002,
       hmr: {
-        port: 5002,
-        clientPort: 5002
+        port: 5003,
+        overlay: false
       },
       open: true,
-      strictPort: true,
+      strictPort: false,
       cors: true,
+      fs: {
+        strict: false
+      },
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',

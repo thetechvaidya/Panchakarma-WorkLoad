@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 interface MobileNavigationProps {
   currentView: string;
@@ -11,13 +11,12 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   onViewChange, 
   isVisible 
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const navigationItems = [
-    { id: 'patients', label: 'Patients', icon: 'fa-user-plus', color: '#0d9488' },
-    { id: 'distribute', label: 'Distribute', icon: 'fa-brain', color: '#8b5cf6' },
-    { id: 'analytics', label: 'Analytics', icon: 'fa-chart-bar', color: '#3b82f6' },
-    { id: 'menu', label: 'Menu', icon: 'fa-bars', color: '#6b7280' },
+    { id: 'home', label: 'HOME', icon: 'fa-home', color: '#059669' },
+    { id: 'patients', label: 'Patients List', icon: 'fa-users', color: '#0d9488' },
+    { id: 'distribute', label: 'Distribute', icon: 'fa-share-alt', color: '#8b5cf6' },
+    { id: 'rules', label: 'Rules & Points', icon: 'fa-gavel', color: '#f59e0b' },
   ];
 
   if (!isVisible) return null;
@@ -67,92 +66,17 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   };
 
   const labelStyle: React.CSSProperties = {
-    fontSize: '11px',
-    fontWeight: '500'
+    fontSize: '10px',
+    fontWeight: '500',
+    textAlign: 'center'
   };
 
   const handleItemClick = (item: any) => {
-    if (item.id === 'menu') {
-      setIsExpanded(!isExpanded);
-    } else {
-      onViewChange(item.id);
-      setIsExpanded(false);
-    }
+    onViewChange(item.id);
   };
 
   return (
     <>
-      {/* Expanded Menu Overlay */}
-      {isExpanded && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            zIndex: 45
-          }}
-          onClick={() => setIsExpanded(false)}
-        >
-          <div 
-            style={{
-              position: 'absolute',
-              bottom: '70px',
-              left: '16px',
-              right: '16px',
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              padding: '16px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600', color: '#111827' }}>
-              Quick Actions
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-              <button
-                style={{
-                  padding: '16px 12px',
-                  backgroundColor: '#f9fafb',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  textAlign: 'center'
-                }}
-                onClick={() => {
-                  onViewChange('patients');
-                  setIsExpanded(false);
-                }}
-              >
-                <i className="fas fa-user-plus" style={{ fontSize: '24px', color: '#0d9488', display: 'block', marginBottom: '8px' }}></i>
-                <span style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>Add Patient</span>
-              </button>
-              
-              <button
-                style={{
-                  padding: '16px 12px',
-                  backgroundColor: '#f9fafb',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  textAlign: 'center'
-                }}
-                onClick={() => {
-                  onViewChange('distribute');
-                  setIsExpanded(false);
-                }}
-              >
-                <i className="fas fa-brain" style={{ fontSize: '24px', color: '#8b5cf6', display: 'block', marginBottom: '8px' }}></i>
-                <span style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>Smart Distribute</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Bottom Navigation */}
       <nav style={navStyle}>
         <div style={containerStyle}>

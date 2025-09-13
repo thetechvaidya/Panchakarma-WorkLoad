@@ -6,7 +6,6 @@ import { generateExportText } from './services/exportService';
 import { getLatestAssignmentsForContinuity, saveDailyData, getDailyData } from './services/historyService';
 
 // Core Components
-import Header from './components/Header';
 import ScholarSetup from './components/ScholarSetup';
 import ResultsDisplay from './components/ResultsDisplay';
 import WorkloadSummary from './components/WorkloadSummary';
@@ -21,8 +20,13 @@ import ErrorDisplay from './components/ErrorDisplay';
 
 // Mobile Components
 import MobileNavigation from './components/MobileNavigation';
-import FloatingActionButton from './components/FloatingActionButton';
 import MobileViewContainer from './components/MobileViewContainer';
+
+// View Components
+import HomeView from './views/HomeView';
+import PatientsView from './views/PatientsView';
+import DistributionView from './views/DistributionView';
+import RulesView from './views/RulesView';
 
 // Hooks
 import { useErrorHandler } from './hooks/useErrorHandler';
@@ -44,7 +48,7 @@ const App: React.FC = () => {
   const [assignments, setAssignments] = useState<Map<string, Assignment>>(new Map());
   
   // UI state
-  const [currentView, setCurrentView] = useState('patients');
+  const [currentView, setCurrentView] = useState('home');
   const [showResults, setShowResults] = useState<boolean>(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -206,20 +210,6 @@ const App: React.FC = () => {
     URL.revokeObjectURL(url);
   }, [assignments, selectedDate]);
 
-  // Floating Action Button actions
-  const handleQuickDistribute = useCallback(() => {
-    setCurrentView('distribute');
-    handleDistribute();
-  }, [handleDistribute]);
-
-  const handleQuickAddPatient = useCallback(() => {
-    setCurrentView('patients');
-  }, []);
-
-  const handleShowAnalytics = useCallback(() => {
-    setCurrentView('analytics');
-  }, []);
-
   // Basic card styles
   const cardStyle: React.CSSProperties = {
     backgroundColor: 'white',
@@ -280,50 +270,45 @@ const App: React.FC = () => {
               isLoading={isLoading} 
             />
 
-            {/* Mobile Content */}
+            {/* Mobile Content - View-based Architecture */}
+            {currentView === 'home' && (
+              <HomeView
+                patients={patients}
+                assignments={assignments}
+                scholars={scholars}
+                isToday={isToday}
+                selectedDate={selectedDate}
+              />
+            )}
+
             {currentView === 'patients' && (
-              <PatientInput 
-                patients={patients} 
-                onAddPatient={handleAddPatient} 
+              <PatientsView
+                patients={patients}
+                assignments={assignments}
+                onAddPatient={handleAddPatient}
                 onDeletePatient={handleDeletePatient}
                 onUpdatePatient={handleUpdatePatient}
-                disabled={!isToday} 
+                disabled={!isToday}
+                isToday={isToday}
               />
             )}
 
             {currentView === 'distribute' && (
-              <div style={cardStyle}>
-                <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600' }}>Smart Distribution</h3>
-                <Button
-                  onClick={handleDistribute}
-                  disabled={isDistributing || patients.length === 0 || !isToday || isLoading}
-                  variant="primary"
-                  size="lg"
-                  icon="brain"
-                  fullWidth
-                >
-                  {isDistributing ? 'AI Processing...' : 'Smart Distribute'}
-                </Button>
-                
-                {showResults && assignments.size > 0 && (
-                  <div style={{ marginTop: '16px' }}>
-                    <WorkloadSummary assignments={assignments} patients={patients} scholars={scholars} />
-                    <ResultsDisplay assignments={assignments} onExport={handleExport} />
-                  </div>
-                )}
-              </div>
+              <DistributionView
+                patients={patients}
+                assignments={assignments}
+                isLoading={isDistributing}
+                onDistributeWorkload={handleDistribute}
+                disabled={!isToday || patients.length === 0}
+                isToday={isToday}
+              />
             )}
 
-            {/* Additional mobile views */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginTop: '24px' }}>
-              <ScholarSetup 
-                scholars={scholars} 
-                onToggleScholarStatus={handleToggleScholarStatus} 
-                disabled={!isToday || isLoading} 
+            {currentView === 'rules' && (
+              <RulesView
+                isToday={isToday}
               />
-              <ProcedureGradeTable />
-              <RulesDisplay />
-            </div>
+            )}
           </MobileViewContainer>
 
           {/* Mobile Navigation */}
@@ -331,15 +316,6 @@ const App: React.FC = () => {
             currentView={currentView}
             onViewChange={setCurrentView}
             isVisible={true}
-          />
-
-          {/* Floating Action Button */}
-          <FloatingActionButton
-            onQuickDistribute={handleQuickDistribute}
-            onAddPatient={handleQuickAddPatient}
-            onShowAnalytics={handleShowAnalytics}
-            disabled={isLoading}
-            isVisible={isToday}
           />
         </div>
       </ErrorBoundary>
@@ -350,7 +326,6 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f9fafb, #eff6ff)', display: 'flex', flexDirection: 'column' }}>
-        <Header />
         <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', flex: 1 }}>
           <DateNavigator selectedDate={selectedDate} onDateChange={setSelectedDate} isLoading={isLoading} />
           

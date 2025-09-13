@@ -1,4 +1,4 @@
-const CACHE_NAME = 'panchkarma-wld-v1.0.1';
+const CACHE_NAME = 'panchkarma-wld-v2.0.0-' + Date.now(); // Force new cache
 const OFFLINE_URL = '/offline.html';
 
 // Resources to cache for offline functionality
@@ -67,19 +67,25 @@ self.addEventListener('activate', (event) => {
   
   event.waitUntil(
     Promise.all([
-      // Clear old caches
+      // Clear ALL caches to force fresh content
       caches.keys().then((cacheNames) => {
         return Promise.all(
-          cacheNames
-            .filter((cacheName) => cacheName !== CACHE_NAME)
-            .map((cacheName) => {
-              console.log('Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            })
+          cacheNames.map((cacheName) => {
+            console.log('Deleting cache:', cacheName);
+            return caches.delete(cacheName);
+          })
         );
       }),
       // Take control of all clients
       self.clients.claim(),
+      // Force reload of all clients
+      self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          if (client.url && client.navigate) {
+            client.navigate(client.url);
+          }
+        });
+      })
     ])
   );
 });
